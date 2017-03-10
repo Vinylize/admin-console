@@ -72,6 +72,7 @@
     "express-graphql": "^0.6.1",
     "favicons-webpack-plugin": "0.0.7",
     "file-loader": "^0.9.0",
+    "google-map-react": "^0.23.0",
     "graphql": "^0.8.2",
     "graphql-relay": "^0.4.4",
     "html-webpack-plugin": "^2.26.0",
