@@ -4,8 +4,6 @@ import {
 } from 'react-mdl';
 import GoogleMapReact from 'google-map-react';
 
-// const AnyReactComponent = ({ text }) => <div>{text}</div>;
-
 export default class MapContent extends React.Component {
   static propTypes = {
     center: React.PropTypes.object.isRequired,
@@ -14,7 +12,8 @@ export default class MapContent extends React.Component {
 
   static defaultProps = {
     center: { lat: 37, lng: 127.33 },
-    zoom: 11
+    zoom: 11,
+    text: ''
   };
 
   render() {
@@ -25,19 +24,19 @@ export default class MapContent extends React.Component {
           <GoogleMapReact
             defaultCenter={this.props.center}
             defaultZoom={this.props.zoom}
-          >
-            {/* <AnyReactComponent />*/}
-          </GoogleMapReact>
-        </div>
-        <div style={{ width: '35%', float: 'right', height: '100vh', marginTop: 65 }}>
-          <Textfield
-            onChange={() => {}}
-            pattern='-?[0-9]*(\.[0-9]+)?'
-            error='Input is not a number!'
-            label='Number...'
-            style={{ width: '200px' }}
           />
-          <h1>dsfgs</h1><h1>dsfgs</h1><h1>dsfgs</h1><h1>dsfgs</h1><h1>dsfgs</h1><h1>dsfgs</h1><h1>dsfgs</h1><h1>dsfgs</h1><h1>dsfgs</h1>
+        </div>
+        <div style={{ width: '35%', float: 'right', marginTop: 65, minHeight: '100vh' }}>
+          <div style={{ padding: 20 }}>
+            <h4> Search Address</h4>
+            <Textfield
+              onChange={() => {}}
+              pattern='-?[0-9]*(\.[0-9]+)?'
+              error='Input is not a number!'
+              label='Number...'
+              style={{ width: '300px' }}
+            />
+          </div>
         </div>
       </div>
     );
