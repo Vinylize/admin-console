@@ -3,12 +3,12 @@ import { IndexRoute, Route, Redirect } from 'react-router';
 
 import ViewerQuery from './ViewerQuery';
 import AppContainer from '../components/App/AppContainer';
-import FeatureContainer from '../components/Feature/FeatureContainer';
+import DashboardContainer from '../components/Dashboard/DashboardContainer';
 import SignupComponent from '../components/Signup/SignupComponent';
 import LoginComponent from '../components/Login/LoginComponent';
 
-import UserMainComponent from '../components/User/UserMain';
-import UserListComponent from '../components/User/UserList';
+import UserMainComponent from '../components/User/UserMainComponent';
+import UserListContainer from '../components/User/UserListContainer';
 
 import RunnerMainComponent from '../components/Runner/RunnerMain';
 import RunnerListComponent from '../components/Runner/RunnerList';
@@ -26,13 +26,13 @@ import MapContentComponent from '../components/Map/MapContent';
 
 export default (
   <Route path='/' component={AppContainer} queries={ViewerQuery}>
-    <IndexRoute component={FeatureContainer} queries={ViewerQuery} />
+    <IndexRoute component={DashboardContainer} queries={ViewerQuery} />
     <Route path='/signup' component={SignupComponent} />
     <Route path='/login' component={LoginComponent} />
 
     <Route path='/user' component={UserMainComponent}>
-      <IndexRoute component={UserListComponent} />
-      <Route path='list' component={UserListComponent} />
+      <IndexRoute component={UserListContainer} queries={ViewerQuery} />
+      <Route path='list' component={UserListContainer} queries={ViewerQuery} />
       <Redirect from='*' to='/user' />
     </Route>
 

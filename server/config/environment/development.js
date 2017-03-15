@@ -1,3 +1,4 @@
 export default {
-  // Put your development configuration here
+  FIREBASE_SERVICE_ACCOUNT_JSON: 'firebaseDev.json',
+  FIREBASE_URL: 'https://vinyl-73696.firebaseio.com'
 };

@@ -4,9 +4,8 @@ import Footer from './FooterComponent';
 export default Relay.createContainer(Footer, {
   fragments: {
     viewer: () => Relay.QL`
-      fragment on User {
-        username
-        website
+      fragment on Admin {
+        id
       }`
   }
 });
