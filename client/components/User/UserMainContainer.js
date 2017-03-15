@@ -1,13 +1,12 @@
 import Relay from 'react-relay';
-import App from './AppComponent';
+import UserMain from './UserMainComponent';
 
-export default Relay.createContainer(App, {
+export default Relay.createContainer(UserMain, {
   fragments: {
     viewer: () => Relay.QL`
       fragment on Admin{
         id
         email
-        name
       }
     `
   }

@@ -19,16 +19,19 @@ import {
   globalIdField,
   mutationWithClientMutationId,
   nodeDefinitions,
-  cursorForObjectInConnection
+  cursorForObjectInConnection,
 } from 'graphql-relay';
 
 import {
-  User,
-  Feature,
+  getAdmin,
+
+  getUsers,
   getUser,
-  getFeature,
-  getFeatures,
-  addFeature
+  getOrders,
+  getOrder,
+  getNodes,
+  createUser,
+  getNode,
 } from './database';
 
 
@@ -40,54 +43,101 @@ import {
  */
 const { nodeInterface, nodeField } = nodeDefinitions(
   (globalId) => {
+    // console.log('this is in nodeDefinition. -globalid', globalId);
     const { type, id } = fromGlobalId(globalId);
-    if (type === 'User') {
+    if (type === 'Admin') {
+      return getAdmin();
+    } else if (type === 'User') {
       return getUser(id);
-    } else if (type === 'Feature') {
-      return getFeature(id);
+    } else if (type === 'Node') {
+      return getNode(id);
+    } else if (type === 'Order') {
+      return getOrder(id);
     }
     return null;
   },
-  (obj) => {
-    if (obj instanceof User) {
-      return userType;
-    } else if (obj instanceof Feature) {
-      return featureType;
-    }
-    return null;
-  }
+  obj =>
+    // console.log('this is in nodeDefinition.', obj);
+    // if(obj.hasOwnProperty(''))
+     null
 );
 
 /**
  * Define your own types here
  */
 
+const adminType = new GraphQLObjectType({
+  name: 'Admin',
+  description: 'Admin of yetta.',
+  fields: () => ({
+    id: globalIdField('Admin'),
+    email: {
+      type: GraphQLString,
+      description: 'Admin\'s email'
+    },
+    name: {
+      type: GraphQLString,
+      description: 'Admin\'s name'
+    },
+    users: {
+      type: userConnection,
+      description: 'user list',
+      args: connectionArgs,
+      resolve: (_, args) => getUsers().then(list => connectionFromArray(list, args))
+    },
+    user: {
+      type: userType,
+      description: 'user by id',
+      args: {
+        id: { type: new GraphQLNonNull(GraphQLString) }
+      },
+      resolve: (_, { id }) => getUser(fromGlobalId(id).id)
+    },
+    // runners: {
+    //
+    // },
+    // runner: {
+    //
+    // },
+    // nodes: {
+    //
+    // },
+    // node: {
+    //
+    // },
+    // orders: {
+    //
+    // },
+    // order: {
+    //
+    // }
+
+
+  }),
+  interfaces: [nodeInterface]
+});
+
 const userType = new GraphQLObjectType({
   name: 'User',
-  description: 'A person who uses our app',
+
+  description: 'A user of Yetta.',
   fields: () => ({
     id: globalIdField('User'),
-    features: {
-      type: featureConnection,
-      description: 'Features that I have',
-      args: connectionArgs,
-      resolve: (_, args) => connectionFromArray(getFeatures(), args)
-    },
-    username: {
-      type: GraphQLString,
-      description: 'Users\'s username'
-    },
-    website: {
-      type: GraphQLString,
-      description: 'User\'s website'
-    }
+    email: { type: GraphQLString },
+    name: { type: GraphQLString },
+    createdAt: { type: GraphQLFloat },
+    phoneNumber: { type: GraphQLString },
+    isPhoneValid: { type: GraphQLBoolean },
+    rating: { type: GraphQLInt },
+    profileImageUrl: { type: GraphQLString },
+    identificationImageUrl: { type: GraphQLString },
   }),
   interfaces: [nodeInterface]
 });
 
 const featureType = new GraphQLObjectType({
   name: 'Feature',
-  description: 'Feature integrated in our starter kit',
+  description: 'Dashboard integrated in our starter kit',
   fields: () => ({
     id: globalIdField('Feature'),
     name: {
@@ -110,34 +160,30 @@ const featureType = new GraphQLObjectType({
  * Define your own connection types here
  */
 const { connectionType: featureConnection, edgeType: featureEdge } = connectionDefinitions({ name: 'Feature', nodeType: featureType });
-
+const { connectionType: userConnection, edgeType: userEdge } = connectionDefinitions({ name: 'User', nodeType: userType });
 /**
  * Create feature example
  */
 
-const addFeatureMutation = mutationWithClientMutationId({
-  name: 'AddFeature',
+const createUserMutation = mutationWithClientMutationId({
+  name: 'CreateUser',
   inputFields: {
     name: { type: new GraphQLNonNull(GraphQLString) },
-    description: { type: new GraphQLNonNull(GraphQLString) },
-    url: { type: new GraphQLNonNull(GraphQLString) },
+    email: { type: new GraphQLNonNull(GraphQLString) },
+    password: { type: new GraphQLNonNull(GraphQLString) },
   },
-
   outputFields: {
-    featureEdge: {
-      type: featureEdge,
-      resolve: (obj) => {
-        const cursorId = cursorForObjectInConnection(getFeatures(), obj);
-        return { node: obj, cursor: cursorId };
-      }
-    },
-    viewer: {
-      type: userType,
-      resolve: () => getUser(1)
+    userEdge: {
+      type: userEdge,
+      resolve: obj =>
+        // TODO: What is cursorForObjectInConnection?
+         getUsers().then((list) => {
+           const cursorId = cursorForObjectInConnection(list, obj);
+           return { node: obj, cursor: cursorId };
+         })
     }
   },
-
-  mutateAndGetPayload: ({ name, description, url }) => addFeature(name, description, url)
+  mutateAndGetPayload: ({ name, email, password }) => createUser(name, email, password)
 });
 
 
@@ -151,8 +197,8 @@ const queryType = new GraphQLObjectType({
     node: nodeField,
     // Add your own root fields here
     viewer: {
-      type: userType,
-      resolve: () => getUser(1)
+      type: adminType,
+      resolve: () => getAdmin()
     }
   })
 });
@@ -164,7 +210,7 @@ const queryType = new GraphQLObjectType({
 const mutationType = new GraphQLObjectType({
   name: 'Mutation',
   fields: () => ({
-    addFeature: addFeatureMutation
+    createUser: createUserMutation
     // Add your own mutations here
   })
 });
