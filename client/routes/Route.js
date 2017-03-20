@@ -1,14 +1,14 @@
 import React from 'react';
 import { IndexRoute, Route, Redirect } from 'react-router';
 
-import ViewerQuery from './ViewerQuery';
-import AppContainer from '../components/App/AppContainer';
-import FeatureContainer from '../components/Feature/FeatureContainer';
+import AppComponent from '../components/App/AppComponent';
+import DashboardComponent from '../components/Dashboard/DashboardComponent';
 import SignupComponent from '../components/Signup/SignupComponent';
 import LoginComponent from '../components/Login/LoginComponent';
 
-import UserMainComponent from '../components/User/UserMain';
-import UserListComponent from '../components/User/UserList';
+import UserMainComponent from '../components/User/UserMainComponent';
+import UserListComponent from '../components/User/UserListComponent';
+import UserDetailComponent from '../components/User/UserDetailComponent';
 
 import RunnerMainComponent from '../components/Runner/RunnerMain';
 import RunnerListComponent from '../components/Runner/RunnerList';
@@ -25,15 +25,16 @@ import PartnerListComponent from '../components/Partner/PartnerList';
 import MapContentComponent from '../components/Map/MapContent';
 
 export default (
-  <Route path='/' component={AppContainer} queries={ViewerQuery}>
-    <IndexRoute component={FeatureContainer} queries={ViewerQuery} />
+  <Route path='/' component={AppComponent}>
+    <IndexRoute component={DashboardComponent} />
     <Route path='/signup' component={SignupComponent} />
     <Route path='/login' component={LoginComponent} />
 
     <Route path='/user' component={UserMainComponent}>
       <IndexRoute component={UserListComponent} />
-      <Route path='list' component={UserListComponent} />
-      <Redirect from='*' to='/user' />
+      <Route path='/user/list' component={UserListComponent} />
+      <Route path='/user/:id' component={UserDetailComponent} />
+      <Redirect from='*' to='/user' component={UserListComponent} />
     </Route>
 
     <Route path='/runner' component={RunnerMainComponent}>

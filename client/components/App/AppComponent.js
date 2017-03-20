@@ -13,6 +13,7 @@ export default class App extends React.Component {
   render() {
     return (
       <div className={styles.root}>
+        {/* <div style={{marginTop:50}}><h1>{this.props.viewer.id}</h1></div>*/}
         <Navbar />
         <div className={styles.content}>
           {this.props.children}

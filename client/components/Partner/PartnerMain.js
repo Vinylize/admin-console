@@ -17,7 +17,7 @@ export default class PartnerMain extends React.Component {
     return (
       <div>
         <Layout fixedDrawer>
-          <Drawer title='Partner Management' style={{ paddingTop: 65 }}>
+          <Drawer title='Partner' style={{ paddingTop: 65 }}>
             <Navigation>
               <Link to='/partner'>Partner management</Link>
               <Link to='/partner/list'>Partner list</Link>
