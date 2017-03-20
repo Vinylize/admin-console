@@ -2,18 +2,14 @@
   Yetta firebase structure
  */
 
-import admin from 'firebase-admin';
+import firebase from 'firebase';
 import config from '../config/environment';
 
-const serviceAccount = require(`../../${config.FIREBASE_SERVICE_ACCOUNT_JSON}`);
-const adminOption = {
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: config.FIREBASE_URL
-};
+firebase.initializeApp(config.firebase);
 
-admin.initializeApp(adminOption);
+firebase.auth().signInWithEmailAndPassword('lyw0149@gmail.com', 'emuzzine1');
 
-const db = admin.database();
+const db = firebase.database();
 
 const userRef = db.ref('/user');
 const userPropertiesRef = db.ref('/userProperties');
@@ -128,7 +124,7 @@ const defaultSchema = {
 };
 
 export {
-  admin,
+  firebase,
   db,
   defaultSchema,
   refs

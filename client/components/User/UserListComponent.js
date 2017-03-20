@@ -1,8 +1,7 @@
 import React from 'react';
-import {
-  Spinner
-} from 'react-mdl';
 import moment from 'moment';
+
+import { Link } from 'react-router';
 
 import FloatingActionButton from 'material-ui/FloatingActionButton';
 import ContentAdd from 'material-ui/svg-icons/content/add';
@@ -14,7 +13,6 @@ import Paper from 'material-ui/Paper';
 import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
 
-
 import {
   Table,
   TableBody,
@@ -24,18 +22,43 @@ import {
   TableRowColumn
 } from 'material-ui/Table';
 
+import {
+  refs,
+} from '../../firebase';
+
+
 export default class UserList extends React.Component {
-  static propTypes = {
-    viewer: React.PropTypes.object.isRequired
-  };
+  // static propTypes = {
+  //   viewer: React.PropTypes.object.isRequired
+  // };
+
 
   constructor(props) {
     super(props);
     this.state = {
       createUserModalOpen: false,
+      users: [],
+      isSearching: false,
     };
   }
 
+  componentDidMount() {
+    this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
+      this.setState({ users: this.state.users.concat(data.val()) });
+    });
+  }
+
+  componentWillUnmount() {
+    refs.user.root.off('child_added', this.userRootChildAdded);
+  }
+
+  onSearchQueryChange(evt) {
+    this.setState({ isSearching: true });
+    setTimeout(() => {
+      this.setState({ isSearching: false });
+    }, 4000);
+    console.log(evt.target.value);
+  }
   handleCreateUserModalOpen = () => {
     this.setState({ createUserModalOpen: true });
   };
@@ -46,10 +69,10 @@ export default class UserList extends React.Component {
 
 
   renderSpinner() {
-    // if (true) {
-    return (<Spinner />);
-    // }
-    // return null;
+    if (this.state.isSearching) {
+      return (<CircularProgress size={25} thickness={2} />);
+    }
+    return null;
   }
 
   render() {
@@ -68,7 +91,7 @@ export default class UserList extends React.Component {
 
     return (
       <div>
-        <div style={{ width: '90%', margin: 'auto' }}>
+        <div style={{ width: '100%', margin: 'auto' }}>
           <Paper>
             <div style={{ display: 'flex', height: 150, flexDirection: 'row', paddingLeft: 30, paddingRight: 40, alignItems: 'center' }} >
               <h3>List of user</h3>
@@ -120,16 +143,14 @@ export default class UserList extends React.Component {
                 }}
               >
                 <TextField
-                  onChange={() => {}}
+                  onChange={this.onSearchQueryChange.bind(this)}
                   floatingLabelText='Search User by E-mail...'
                 />
                 <div style={{ paddingLeft: 20, width: 40, height: 40 }}>
-                  <CircularProgress size={25} thickness={2} />
+                  {this.renderSpinner()}
                 </div>
 
               </div>
-
-
             </div>
             <div style={{ float: 'clear' }} >
               <Table
@@ -138,24 +159,30 @@ export default class UserList extends React.Component {
               >
                 <TableHeader>
                   <TableRow>
-                    <TableHeaderColumn>Email</TableHeaderColumn>
-                    <TableHeaderColumn>Name</TableHeaderColumn>
-                    <TableHeaderColumn>phoneNumber</TableHeaderColumn>
-                    <TableHeaderColumn>isPhoneValid</TableHeaderColumn>
-                    <TableHeaderColumn>CreatedAt</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='4'>Email</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='3'>Name</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='3'>phoneNumber</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>isPhoneValid</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='3'>Action</TableHeaderColumn>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {this.props.viewer.users.edges.map((edge) => {
-                    const time = moment(edge.node.createdAt).calendar();
-
+                  {this.state.users.map((user) => {
+                    const time = moment(user.createdAt).calendar();
                     return (
-                      <TableRow key={edge.node.id}>
-                        <TableRowColumn>{edge.node.email}</TableRowColumn>
-                        <TableRowColumn>{edge.node.name}</TableRowColumn>
-                        <TableRowColumn>{edge.node.phoneNumber}</TableRowColumn>
-                        <TableRowColumn>{edge.node.isPhoneValid ? 'OK' : ''}</TableRowColumn>
-                        <TableRowColumn>{`${time}`}</TableRowColumn>
+                      <TableRow key={user.id}>
+                        <TableRowColumn colSpan='4'>{user.email}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{user.name}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{user.phoneNumber}</TableRowColumn>
+                        <TableRowColumn colSpan='2'>{user.isPhoneValid ? 'YES' : 'NO'}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{`${time}`}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>
+                          <Link to={`/user/${user.id}`}>
+                            <RaisedButton label='Details' primary />
+                          </Link>
+                          {/* </RaisedButton>*/}
+                        </TableRowColumn>
                       </TableRow>
                     );
                   })}
