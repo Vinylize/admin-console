@@ -14,9 +14,7 @@ import Page from '../Page/PageComponent';
 // import AddFeature from './AddFeatureComponent';
 
 export default class Feature extends React.Component {
-  static propTypes = {
-    viewer: React.PropTypes.object.isRequired
-  };
+  static propTypes = {};
 
   render() {
     return (
