@@ -10,13 +10,11 @@ import {
   Button
 } from 'react-mdl';
 import Page from '../Page/PageComponent';
-// import styles from './Feature.scss';
+// import styles from './Dashboard.scss';
 // import AddFeature from './AddFeatureComponent';
 
 export default class Feature extends React.Component {
-  static propTypes = {
-    viewer: React.PropTypes.object.isRequired
-  };
+  static propTypes = {};
 
   render() {
     return (

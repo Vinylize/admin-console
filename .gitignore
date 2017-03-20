@@ -38,3 +38,8 @@ build/
 *.vim
 
 .vscode
+
+# --------------------
+# Credintial Files
+# --------------------
+firebaseDev.json
