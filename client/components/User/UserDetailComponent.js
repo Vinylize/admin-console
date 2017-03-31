@@ -25,7 +25,7 @@ import Paper from 'material-ui/Paper';
 
 import {
   refs,
-} from '../../firebase';
+} from '../../util/firebase';
 
 export default class UserDetail extends React.Component {
   static propTypes = {
@@ -42,21 +42,21 @@ export default class UserDetail extends React.Component {
   }
 
   componentDidMount() {
-    this.userRootCallback = refs.user.root.child(this.props.params.id).on('value', (data) => {
+    this.nodeRootCallback = refs.user.root.child(this.props.params.id).on('value', (data) => {
       this.setState({ user: data.val() });
     });
-    this.runnerQualificationCallback = refs.user.runnerQualification.child(this.props.params.id).on('value', (data) => {
+    this.nodeCoordinateCallback = refs.user.runnerQualification.child(this.props.params.id).on('value', (data) => {
       this.setState({ userProperties: { ...this.state.userProperties, runnerQualification: data.val() } });
     });
-    this.userQualificationCallback = refs.user.userQualification.child(this.props.params.id).on('value', (data) => {
+    this.nodeItemsCallback = refs.user.userQualification.child(this.props.params.id).on('value', (data) => {
       this.setState({ userProperties: { ...this.state.userProperties, userQualification: data.val() } });
     });
   }
 
   componentWillUnmount() {
-    refs.user.root.off('value', this.userRootCallback);
-    refs.user.runnerQualification.off('value', this.runnerQualificationCallback);
-    refs.user.userQualification.off('value', this.userQualificationCallback);
+    refs.user.root.off('value', this.nodeRootCallback);
+    refs.user.runnerQualification.off('value', this.nodeCoordinateCallback);
+    refs.user.userQualification.off('value', this.nodeItemsCallback);
   }
 
   render() {
