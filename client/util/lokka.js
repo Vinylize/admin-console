@@ -17,4 +17,5 @@ firebase.auth().getToken()
     };
     /* eslint-enable no-underscore-dangle */
   });
+
 export default client;

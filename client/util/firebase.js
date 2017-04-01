@@ -7,7 +7,7 @@ import config from '../../config/environment';
 
 firebase.initializeApp(config.firebase);
 
-firebase.auth().signInWithEmailAndPassword('lyw0149@gmail.com', 'emuzzine1');
+firebase.auth().signInWithEmailAndPassword('lyw0149@gmail.com', 'emuzzine');
 
 const db = firebase.database();
 
