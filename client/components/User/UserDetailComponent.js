@@ -36,27 +36,31 @@ export default class UserDetail extends React.Component {
     super(props);
     this.state = {
       user: {},
-      userProperties: {
-      },
+      userProperties: {},
+      coordinate: {}
     };
   }
 
   componentDidMount() {
-    this.nodeRootCallback = refs.user.root.child(this.props.params.id).on('value', (data) => {
+    this.userRootCallback = refs.user.root.child(this.props.params.id).on('value', (data) => {
       this.setState({ user: data.val() });
     });
-    this.nodeCoordinateCallback = refs.user.runnerQualification.child(this.props.params.id).on('value', (data) => {
+    this.runnerQualificationCallback = refs.user.runnerQualification.child(this.props.params.id).on('value', (data) => {
       this.setState({ userProperties: { ...this.state.userProperties, runnerQualification: data.val() } });
     });
-    this.nodeItemsCallback = refs.user.userQualification.child(this.props.params.id).on('value', (data) => {
+    this.userQualificationCallback = refs.user.userQualification.child(this.props.params.id).on('value', (data) => {
       this.setState({ userProperties: { ...this.state.userProperties, userQualification: data.val() } });
+    });
+    this.coordinateCallback = refs.user.coordinate.child(this.props.params.id).on('value', (data) => {
+      this.setState({ userProperties: { ...this.state.userProperties, coordinate: data.val() } });
     });
   }
 
   componentWillUnmount() {
-    refs.user.root.off('value', this.nodeRootCallback);
-    refs.user.runnerQualification.off('value', this.nodeCoordinateCallback);
-    refs.user.userQualification.off('value', this.nodeItemsCallback);
+    refs.user.root.off('value', this.userRootCallback);
+    refs.user.runnerQualification.off('value', this.runnerQualificationCallback);
+    refs.user.userQualification.off('value', this.userQualificationCallback);
+    refs.user.coordinate.off('value', this.coordinateCallback);
   }
 
   render() {
