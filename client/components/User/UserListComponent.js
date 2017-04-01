@@ -22,34 +22,35 @@ import {
   TableRowColumn
 } from 'material-ui/Table';
 
-import {
-  refs,
-} from '../../firebase';
+import getDb from '../../firebase';
 
-
-export default class UserList extends React.Component {
+class UserList extends React.Component {
   // static propTypes = {
   //   viewer: React.PropTypes.object.isRequired
   // };
-
 
   constructor(props) {
     super(props);
     this.state = {
       createUserModalOpen: false,
+      refs: {},
       users: [],
       isSearching: false,
     };
   }
 
+  componentWillMount() {
+    this.state.refs = getDb().refs;
+  }
+
   componentDidMount() {
-    this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
+    this.userRootChildAdded = this.state.refs.user.root.orderByKey().on('child_added', (data) => {
       this.setState({ users: this.state.users.concat(data.val()) });
     });
   }
 
   componentWillUnmount() {
-    refs.user.root.off('child_added', this.userRootChildAdded);
+    this.state.refs.user.root.off('child_added', this.userRootChildAdded);
   }
 
   onSearchQueryChange(evt) {
@@ -241,3 +242,5 @@ export default class UserList extends React.Component {
     );
   }
 }
+
+export default UserList;
