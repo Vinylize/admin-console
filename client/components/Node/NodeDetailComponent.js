@@ -24,11 +24,11 @@ import Paper from 'material-ui/Paper';
 // } from 'material-ui/Table';
 
 import {
+  firebase,
   refs,
 } from '../../util/firebase';
 
-import client from '../../util/lokka';
-
+const uploadBaseUrl = 'http://localhost:5002/graphql/upload?query=';
 
 export default class NodeDetail extends React.Component {
   static propTypes = {
@@ -70,18 +70,27 @@ export default class NodeDetail extends React.Component {
     // TODO: do something with -> this.state.file
     console.log('handle uploading-', this.state.file);
 
-    client.mutate(`{
-     createNodeFromAdmin(
-       input:{
-         file:
-       }
-     ) {
-       result
-     }
-   }`
-    )
-      .then(() => {
-        this.setState({ createUserModalOpen: false });
+    const data = new FormData();
+    data.append('file', this.state.file);
+    const url = `${uploadBaseUrl}mutation{uploadNodeImage(input:{nodeId:"${this.props.params.id}"}){imageUrl clientMutationId}}`;
+    console.log(url);
+    return firebase.auth().getToken()
+      .then(token => fetch(url,
+        {
+          method: 'POST',
+          body: data,
+          headers: {
+            authorization: token.accessToken
+          }
+        }))
+      .then(response => response.json())
+      .then((response) => {
+        if (response.errors) {
+          console.log(response.errors);
+          return;
+        }
+
+        console.log(response.data);
       })
       .catch(console.log);
   }
@@ -114,6 +123,8 @@ export default class NodeDetail extends React.Component {
         <div style={{ width: '90%', margin: 'auto' }}>
           <Paper style={{ paddingLeft: '70px', paddingTop: '30px', paddingBottom: '30px' }}>
             <h4>{`Node ${this.props.params.id} - Basic Information`}</h4>
+            <h6>Image</h6><img width={100} role='presentation' src={this.state.node.imageUrl} />
+            <h6>update Image</h6>
             <div className='previewComponent'>
               <form onSubmit={e => this.handleSubmit(e)}>
                 <input
