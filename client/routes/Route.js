@@ -3,7 +3,6 @@ import { IndexRoute, Route, Redirect } from 'react-router';
 
 import AppComponent from '../components/App/AppComponent';
 import DashboardComponent from '../components/Dashboard/DashboardComponent';
-import SignupComponent from '../components/Signup/SignupComponent';
 import LoginComponent from '../components/Login/LoginComponent';
 
 import UserMainComponent from '../components/User/UserMainComponent';
@@ -25,45 +24,47 @@ import PartnerListComponent from '../components/Partner/PartnerList';
 
 import MapContentComponent from '../components/Map/MapContent';
 
+import { deleteAuth, checkAuthRoute } from '../auth/Auth';
+
 export default (
   <Route path='/' component={AppComponent}>
     <IndexRoute component={DashboardComponent} />
-    <Route path='/signup' component={SignupComponent} />
-    <Route path='/login' component={LoginComponent} />
+    <Route path='/login' component={LoginComponent} onEnter={checkAuthRoute} />
 
-    <Route path='/user' component={UserMainComponent}>
+    <Route path='/user' component={UserMainComponent} onEnter={checkAuthRoute}>
       <IndexRoute component={UserListComponent} />
       <Route path='/user/list' component={UserListComponent} />
       <Route path='/user/:id' component={UserDetailComponent} />
       <Redirect from='*' to='/user' component={UserListComponent} />
     </Route>
 
-    <Route path='/runner' component={RunnerMainComponent}>
+    <Route path='/runner' component={RunnerMainComponent} onEnter={checkAuthRoute}>
       <IndexRoute component={RunnerListComponent} />
       <Route path='list' component={RunnerListComponent} />
       <Redirect from='*' to='/runner' />
     </Route>
 
-    <Route path='/order' component={OrderMainComponent}>
+    <Route path='/order' component={OrderMainComponent} onEnter={checkAuthRoute}>
       <IndexRoute component={OrderListComponent} />
       <Route path='list' component={OrderListComponent} />
       <Redirect from='*' to='/order' />
     </Route>
 
-    <Route path='/node' component={NodeMainComponent}>
+    <Route path='/node' component={NodeMainComponent} onEnter={checkAuthRoute}>
       <IndexRoute component={NodeListComponent} />
       <Route path='/node/list' component={NodeListComponent} />
       <Route path='/node/:id' component={NodeDetailComponent} />
       <Redirect from='*' to='/node' />
     </Route>
 
-    <Route path='/partner' component={PartnerMainComponent}>
+    <Route path='/partner' component={PartnerMainComponent} onEnter={checkAuthRoute}>
       <IndexRoute component={PartnerListComponent} />
       <Route path='list' component={PartnerListComponent} />
       <Redirect from='*' to='/partner' />
     </Route>
 
-    <Route path='/map' component={MapContentComponent} />
+    <Route path='/map' component={MapContentComponent} onEnter={checkAuthRoute} />
+    <Route path='/logout' component={DashboardComponent} onEnter={deleteAuth} />
 
     {/* <Route path='/cs' component={}>
       <IndexRoute component={} />
@@ -74,4 +75,3 @@ export default (
     <Redirect from='*' to='/' />
   </Route>
 );
-

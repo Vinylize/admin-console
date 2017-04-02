@@ -2,8 +2,21 @@ import React from 'react';
 import { Link } from 'react-router';
 import { Layout, Header, Navigation } from 'react-mdl';
 import styles from './Navbar.scss';
+import { checkAuth } from '../../auth/Auth';
 
 export default class Navbar extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      loginOrLogout: 'login'
+    };
+  }
+
+  componentWillReceiveProps() {
+    if (checkAuth()) this.setState({ loginOrLogout: 'logout' });
+    else this.setState({ loginOrLogout: 'login' });
+  }
+
   render() {
     const title = 'Yetta Management Console';
     return (
@@ -16,8 +29,7 @@ export default class Navbar extends React.Component {
             <Link to='/order'>Order</Link>
             <Link to='/partner'>Partner</Link>
             <Link to='/map'>Open Map</Link>
-            <Link to='/'>Experimental</Link>
-            <Link to='/login'>Login</Link>
+            <Link to={`/${this.state.loginOrLogout}`}>{this.state.loginOrLogout}</Link>
           </Navigation>
         </Header>
       </Layout>

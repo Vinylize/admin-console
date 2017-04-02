@@ -23,9 +23,11 @@ import Paper from 'material-ui/Paper';
 //   TableRowColumn
 // } from 'material-ui/Table';
 
-import {
-  refs,
-} from '../../util/firebase';
+
+// import {
+//   refs,
+// } from '../../firebase';
+import { refs } from '../../util/firebase';
 
 export default class UserDetail extends React.Component {
   static propTypes = {
@@ -35,24 +37,32 @@ export default class UserDetail extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      refs: {},
       user: {},
       userProperties: {},
-      coordinate: {}
     };
   }
 
   componentDidMount() {
     this.userRootCallback = refs.user.root.child(this.props.params.id).on('value', (data) => {
-      this.setState({ user: data.val() });
+      if (data.val()) {
+        this.setState({ user: data.val() });
+      }
     });
     this.runnerQualificationCallback = refs.user.runnerQualification.child(this.props.params.id).on('value', (data) => {
-      this.setState({ userProperties: { ...this.state.userProperties, runnerQualification: data.val() } });
+      if (data.val()) {
+        this.setState({ userProperties: { ...this.state.userProperties, runnerQualification: data.val() } });
+      }
     });
     this.userQualificationCallback = refs.user.userQualification.child(this.props.params.id).on('value', (data) => {
-      this.setState({ userProperties: { ...this.state.userProperties, userQualification: data.val() } });
+      if (data.val()) {
+        this.setState({ userProperties: { ...this.state.userProperties, userQualification: data.val() } });
+      }
     });
     this.coordinateCallback = refs.user.coordinate.child(this.props.params.id).on('value', (data) => {
-      this.setState({ userProperties: { ...this.state.userProperties, coordinate: data.val() } });
+      if (data.val()) {
+        this.setState({ userProperties: { ...this.state.userProperties, coordinate: data.val() } });
+      }
     });
   }
 

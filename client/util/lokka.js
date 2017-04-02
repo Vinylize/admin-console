@@ -9,13 +9,18 @@ const client = new Lokka({
   transport: new Transport(URL)
 });
 
-firebase.auth().getToken()
-  .then((token) => {
-    /* eslint-disable no-underscore-dangle */
-    client._transport._httpOptions.headers = {
-      authorization: token.accessToken,
-    };
-    /* eslint-enable no-underscore-dangle */
-  });
+if (firebase.auth().currentUser) {
+  firebase.auth().getToken()
+    .then((token) => {
+      /* eslint-disable no-underscore-dangle */
+      client._transport._httpOptions.headers = {
+        authorization: token.accessToken,
+      };
+      /* eslint-enable no-underscore-dangle */
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+}
 
 export default client;

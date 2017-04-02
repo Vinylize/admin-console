@@ -22,16 +22,12 @@ import {
   TableRowColumn
 } from 'material-ui/Table';
 
-import {
-  refs,
-} from '../../util/firebase';
+import { refs } from '../../util/firebase';
 
-
-export default class UserList extends React.Component {
+class UserList extends React.Component {
   // static propTypes = {
   //   viewer: React.PropTypes.object.isRequired
   // };
-
 
   constructor(props) {
     super(props);
@@ -241,3 +237,5 @@ export default class UserList extends React.Component {
     );
   }
 }
+
+export default UserList;
