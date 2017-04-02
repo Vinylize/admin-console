@@ -28,23 +28,29 @@ export default class MapContent extends React.Component {
   }
 
   componentDidMount() {
-    this.userRootChildAdded = refs.user.coordinate.on('child_added', (data) => {
+    this.userCoordinateChildAdded = refs.user.coordinate.on('child_added', (data) => {
       this.setState({ runners: { ...this.state.runners, [`${data.key}`]: data.val() } });
     });
 
-    this.userRootChildChanged = refs.user.coordinate.on('child_changed', (data) => {
+    this.userCoordinateChildChanged = refs.user.coordinate.on('child_changed', (data) => {
       console.log('child_changed', data.key, data.val());
       const newState = this.state.runners;
       newState[data.key] = data.val();
       this.setState({ runners: newState });
     });
 
-    this.userRootChildRemoved = refs.user.coordinate.on('child_removed', (data) => {
+    this.userCoordinateChildRemoved = refs.user.coordinate.on('child_removed', (data) => {
       console.log('child_removed', data.key, data.val());
       const newState = this.state.runners;
       delete newState[data.key];
       this.setState({ runners: newState });
     });
+  }
+
+  componentWillUnmount() {
+    refs.user.coordinate.off('child_added', this.userCoordinateChildAdded);
+    refs.user.coordinate.off('child_changed', this.userCoordinateChildChanged);
+    refs.user.coordinate.off('child_removed', this.userCoordinateChildRemoved);
   }
 
   render() {
