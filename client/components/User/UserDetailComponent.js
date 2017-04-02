@@ -23,9 +23,11 @@ import Paper from 'material-ui/Paper';
 //   TableRowColumn
 // } from 'material-ui/Table';
 
-import {
-  refs,
-} from '../../util/firebase';
+
+// import {
+//   refs,
+// } from '../../firebase';
+import getDb from '../../util/firebase';
 
 export default class UserDetail extends React.Component {
   static propTypes = {
@@ -35,32 +37,37 @@ export default class UserDetail extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      refs: {},
       user: {},
       userProperties: {},
       coordinate: {}
     };
   }
 
+  componentWillMount() {
+    this.state.refs = getDb().refs;
+  }
+
   componentDidMount() {
-    this.userRootCallback = refs.user.root.child(this.props.params.id).on('value', (data) => {
+    this.userRootCallback = this.state.refs.user.root.child(this.props.params.id).on('value', (data) => {
       this.setState({ user: data.val() });
     });
-    this.runnerQualificationCallback = refs.user.runnerQualification.child(this.props.params.id).on('value', (data) => {
+    this.runnerQualificationCallback = this.state.refs.user.runnerQualification.child(this.props.params.id).on('value', (data) => {
       this.setState({ userProperties: { ...this.state.userProperties, runnerQualification: data.val() } });
     });
-    this.userQualificationCallback = refs.user.userQualification.child(this.props.params.id).on('value', (data) => {
+    this.userQualificationCallback = this.state.refs.user.userQualification.child(this.props.params.id).on('value', (data) => {
       this.setState({ userProperties: { ...this.state.userProperties, userQualification: data.val() } });
     });
-    this.coordinateCallback = refs.user.coordinate.child(this.props.params.id).on('value', (data) => {
+    this.coordinateCallback = this.state.refs.user.coordinate.child(this.props.params.id).on('value', (data) => {
       this.setState({ userProperties: { ...this.state.userProperties, coordinate: data.val() } });
     });
   }
 
   componentWillUnmount() {
-    refs.user.root.off('value', this.userRootCallback);
-    refs.user.runnerQualification.off('value', this.runnerQualificationCallback);
-    refs.user.userQualification.off('value', this.userQualificationCallback);
-    refs.user.coordinate.off('value', this.coordinateCallback);
+    this.state.refs.user.root.off('value', this.userRootCallback);
+    this.state.refs.user.runnerQualification.off('value', this.runnerQualificationCallback);
+    this.state.refs.user.userQualification.off('value', this.userQualificationCallback);
+    this.state.refs.user.coordinate.off('value', this.coordinateCallback);
   }
 
   render() {
