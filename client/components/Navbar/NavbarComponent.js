@@ -12,9 +12,18 @@ export default class Navbar extends React.Component {
     };
   }
 
+  componentDidMount() {
+    setTimeout(() => {
+      if (checkAuth()) this.setState({ loginOrLogout: 'logout' });
+      else this.setState({ loginOrLogout: 'login' });
+    }, 500);
+  }
+
   componentWillReceiveProps() {
-    if (checkAuth()) this.setState({ loginOrLogout: 'logout' });
-    else this.setState({ loginOrLogout: 'login' });
+    setTimeout(() => {
+      if (checkAuth()) this.setState({ loginOrLogout: 'logout' });
+      else this.setState({ loginOrLogout: 'login' });
+    }, 200);
   }
 
   render() {
