@@ -45,7 +45,9 @@ export default class NodeDetail extends React.Component {
 
   componentDidMount() {
     this.nodeRootCallback = refs.node.root.child(this.props.params.id).on('value', (data) => {
-      this.setState({ node: data.val() });
+      if (data.val()) {
+        this.setState({ node: data.val() });
+      }
     });
     this.nodeCoordinateCallback = refs.node.coordinate.child(this.props.params.id).on('value', (data) => {
       if (data.val()) {
