@@ -15,8 +15,9 @@ import RunnerListComponent from '../components/Runner/RunnerList';
 import OrderMainComponent from '../components/Order/OrderMain';
 import OrderListComponent from '../components/Order/OrderList';
 
-import NodeMainComponent from '../components/Node/NodeMain';
-import NodeListComponent from '../components/Node/NodeList';
+import NodeMainComponent from '../components/Node/NodeMainComponent';
+import NodeListComponent from '../components/Node/NodeListComponent';
+import NodeDetailComponent from '../components/Node/NodeDetailComponent';
 
 import PartnerMainComponent from '../components/Partner/PartnerMain';
 import PartnerListComponent from '../components/Partner/PartnerList';
@@ -51,7 +52,8 @@ export default (
 
     <Route path='/node' component={NodeMainComponent} onEnter={checkAuthRoute}>
       <IndexRoute component={NodeListComponent} />
-      <Route path='list' component={NodeListComponent} />
+      <Route path='/node/list' component={NodeListComponent} />
+      <Route path='/node/:id' component={NodeDetailComponent} />
       <Redirect from='*' to='/node' />
     </Route>
 

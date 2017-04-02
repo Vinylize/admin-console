@@ -22,9 +22,14 @@ import {
   TableRowColumn
 } from 'material-ui/Table';
 
-import getDb from '../../util/firebase';
+import {
+  refs,
+} from '../../util/firebase';
 
-class UserList extends React.Component {
+import client from '../../util/lokka';
+
+
+export default class NodeList extends React.Component {
   // static propTypes = {
   //   viewer: React.PropTypes.object.isRequired
   // };
@@ -33,41 +38,52 @@ class UserList extends React.Component {
     super(props);
     this.state = {
       createUserModalOpen: false,
-      refs: {},
-      users: [],
+      nodes: [],
       isSearching: false,
     };
   }
 
-  componentWillMount() {
-    this.state.refs = getDb().refs;
-  }
-
   componentDidMount() {
-    this.userRootChildAdded = this.state.refs.user.root.orderByKey().on('child_added', (data) => {
-      this.setState({ users: this.state.users.concat(data.val()) });
+    this.userRootChildAdded = refs.node.root.orderByKey().on('child_added', (data) => {
+      console.log(data.val());
+      this.setState({ nodes: this.state.nodes.concat(data.val()) });
     });
   }
 
   componentWillUnmount() {
-    this.state.refs.user.root.off('child_added', this.userRootChildAdded);
+    refs.node.root.off('child_added', this.userRootChildAdded);
   }
 
-  onSearchQueryChange(evt) {
-    this.setState({ isSearching: true });
-    setTimeout(() => {
-      this.setState({ isSearching: false });
-    }, 4000);
-    console.log(evt.target.value);
-  }
-  handleCreateUserModalOpen = () => {
+  handleCreateNodeModalOpen = () => {
     this.setState({ createUserModalOpen: true });
   };
 
-  handleCreateUserModalClose = () => {
+  handleCreateNodeModalClose = () => {
     this.setState({ createUserModalOpen: false });
   };
 
+  handleCreateNodeModalCreate = () => {
+    client.mutate(`{
+     createNodeFromAdmin(
+       input:{
+         name: "${this.nameInput.getValue()}",
+         address: "${this.addressInput.getValue()}",
+         category1: "${this.firstCategoryInput.getValue()}",
+         category2: "${this.secondCategoryInput.getValue()}",
+         type: "${this.typeInput.getValue()}",
+         lat: ${this.latInput.getValue()}
+         lng: ${this.lngInput.getValue()}
+       }
+     ) {
+       result
+     }
+   }`
+    )
+      .then(() => {
+        this.setState({ createUserModalOpen: false });
+      })
+      .catch(console.log);
+  };
 
   renderSpinner() {
     if (this.state.isSearching) {
@@ -81,12 +97,12 @@ class UserList extends React.Component {
       <FlatButton
         label='Cancel'
         primary
-        onTouchTap={this.handleCreateUserModalClose}
+        onTouchTap={this.handleCreateNodeModalClose}
       />,
       <FlatButton
         label='Create'
         primary
-        onTouchTap={this.handleCreateUserModalClose}
+        onTouchTap={this.handleCreateNodeModalCreate}
       />,
     ];
 
@@ -95,45 +111,16 @@ class UserList extends React.Component {
         <div style={{ width: '100%', margin: 'auto' }}>
           <Paper>
             <div style={{ display: 'flex', height: 150, flexDirection: 'row', paddingLeft: 30, paddingRight: 40, alignItems: 'center' }} >
-              <h3>List of user</h3>
+              <h3>List of Node</h3>
               <div style={{ display: 'flex', height: 56, flex: 1, justifyContent: 'flex-end', }}>
-                <FloatingActionButton onClick={this.handleCreateUserModalOpen}>
+                <FloatingActionButton onClick={this.handleCreateNodeModalOpen}>
                   <ContentAdd name='add' />
                 </FloatingActionButton>
               </div>
             </div>
-            {/* <i style={{ paddingLeft: 31 }} >Action for selected user...</i>*/}
-            {/* <i style={{ paddingLeft: 31 }} >{this.props.viewer.users}</i>*/}
 
 
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
-              <div>
-                <RaisedButton
-                  label='Detail'
-                  disabled
-                  style={{
-                    margin: 12,
-                  }}
-                />
-                <RaisedButton
-                  label='Block'
-                  secondary
-                  disabled
-                  style={{
-                    margin: 12,
-                    marginLeft: 50,
-                  }}
-                />
-                <RaisedButton
-                  label='Unblock'
-                  primary
-                  disabled
-                  style={{
-                    margin: 12,
-                  }}
-                />
-
-              </div>
               <div
                 style={{
                   display: 'flex',
@@ -143,10 +130,10 @@ class UserList extends React.Component {
                   justifyContent: 'flex-end'
                 }}
               >
-                <TextField
-                  onChange={this.onSearchQueryChange.bind(this)}
-                  floatingLabelText='Search User by E-mail...'
-                />
+                {/* <TextField*/}
+                {/* onChange={this.onSearchQueryChange.bind(this)}*/}
+                {/* floatingLabelText='Search User by E-mail...'*/}
+                {/* />*/}
                 <div style={{ paddingLeft: 20, width: 40, height: 40 }}>
                   {this.renderSpinner()}
                 </div>
@@ -160,26 +147,26 @@ class UserList extends React.Component {
               >
                 <TableHeader>
                   <TableRow>
-                    <TableHeaderColumn colSpan='4'>Email</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Name</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>phoneNumber</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>isPhoneValid</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='4'>Name</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='3'>Address</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='3'>lat</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>lng</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>Action</TableHeaderColumn>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {this.state.users.map((user) => {
-                    const time = moment(user.createdAt).calendar();
+                  {this.state.nodes.map((node) => {
+                    const time = node.createdAt ? moment(node.createdAt).calendar() : 'N/A';
                     return (
-                      <TableRow key={user.id}>
-                        <TableRowColumn colSpan='4'>{user.email}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{user.name}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{user.phoneNumber}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>{user.isPhoneValid ? 'YES' : 'NO'}</TableRowColumn>
+                      <TableRow key={node.id}>
+                        <TableRowColumn colSpan='4'>{node.name}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{node.address}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{node.lat}</TableRowColumn>
+                        <TableRowColumn colSpan='2'>{node.lng}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{`${time}`}</TableRowColumn>
                         <TableRowColumn colSpan='3'>
-                          <Link to={`/user/${user.id}`}>
+                          <Link to={`/node/${node.id}`}>
                             <RaisedButton label='Details' primary />
                           </Link>
                           {/* </RaisedButton>*/}
@@ -191,46 +178,60 @@ class UserList extends React.Component {
               </Table></div>
 
           </Paper>
-
-
-          {/* <DataTable
-            width='100%'
-            selectable
-            onSelectionChanged={() => {}}
-            shadow={0}
-            rowKeyColumn='id'
-            rows={data}
-          >
-            <TableHeader name='name' tooltip='name of UserList'>Name</TableHeader>
-            <TableHeader name='email' tooltip='email of user'>email</TableHeader>
-            <TableHeader numeric name='rating' tooltip='rating of user.'>Rating</TableHeader>
-            <TableHeader name='action' tooltip='Action for user.'>Action</TableHeader>
-             <TableHeader numeric name='rating' cellFormatter={price => `\$${price.toFixed(2)}`} tooltip='Price pet unit'>rating</TableHeader>
-
-          </DataTable>*/}
           <Dialog
-            title='Create User'
+            title='Create Node'
             actions={createUserModalActions}
             modal
             open={this.state.createUserModalOpen}
             contentStyle={{ width: 400 }}
-            onRequestClose={this.handleCreateUserModalClose}
+            onRequestClose={this.handleCreateNodeModalClose}
           >
             <Paper zDepth={0}>
               <TextField
-                hintText='Name' style={{
-                  marginLeft: 20
+                ref={(ref) => { this.nameInput = ref; }}
+                hintText='Name'
+                style={{ marginLeft: 20 }}
+                underlineShow={false}
+              />
+              <Divider />
+              <TextField
+                ref={(ref) => { this.addressInput = ref; }}
+                hintText='Address'
+                style={{ marginLeft: 20 }}
+                underlineShow={false}
+              />
+              <Divider />
+              <TextField
+                ref={(ref) => { this.firstCategoryInput = ref; }}
+                hintText='Category 1' style={{
+                  marginLeft: 20,
                 }} underlineShow={false}
               />
               <Divider />
               <TextField
-                hintText='Email address' style={{
-                  marginLeft: 20
+                ref={(ref) => { this.secondCategoryInput = ref; }}
+                hintText='Category 2' style={{
+                  marginLeft: 20,
                 }} underlineShow={false}
               />
               <Divider />
               <TextField
-                hintText='Password' style={{
+                ref={(ref) => { this.typeInput = ref; }}
+                hintText='Type' style={{
+                  marginLeft: 20,
+                }} underlineShow={false}
+              />
+              <Divider />
+              <TextField
+                ref={(ref) => { this.latInput = ref; }}
+                hintText='Lat' style={{
+                  marginLeft: 20,
+                }} underlineShow={false}
+              />
+              <Divider />
+              <TextField
+                ref={(ref) => { this.lngInput = ref; }}
+                hintText='Lng' style={{
                   marginLeft: 20,
                 }} underlineShow={false}
               />
@@ -242,5 +243,3 @@ class UserList extends React.Component {
     );
   }
 }
-
-export default UserList;
