@@ -3,11 +3,11 @@
  */
 
 import firebase from 'firebase';
-import config from '../config/environment';
+import config from '../../config/environment';
 
 firebase.initializeApp(config.firebase);
 
-firebase.auth().signInWithEmailAndPassword('lyw0149@gmail.com', 'emuzzine1');
+firebase.auth().signInWithEmailAndPassword('lyw0149@gmail.com', 'emuzzine');
 
 const db = firebase.database();
 
@@ -49,7 +49,8 @@ const refs = {
   node: {
     root: nodeRef,
     properties: nodePropertiesRef,
-    items: nodePropertiesRef.child('items')
+    items: nodePropertiesRef.child('items'),
+    coordinate: nodePropertiesRef.child('coordinate')
   },
   partner: {
     root: partnerRef,
@@ -67,7 +68,6 @@ const defaultSchema = {
       isPhoneValid: false,
       phoneNumber: null,
       rating: 5,
-      createdAt: Date.now()
     },
     orderQualification: {
       isAgreed: false,
@@ -86,7 +86,6 @@ const defaultSchema = {
     root: {
       runnerId: null,
       receiptImage: null,
-      createdAt: Date.now(),
       realDeliveryPrice: null,
       isExpired: false
     },
@@ -104,7 +103,7 @@ const defaultSchema = {
   },
   node: {
     root: {
-      createdAt: Date.now()
+      like: 0
     },
     items: {
       itemImageUrl: null
@@ -112,7 +111,6 @@ const defaultSchema = {
   },
   partner: {
     root: {
-      createdAt: Date.now()
     },
     qualification: {
       isAgreed: false,
@@ -127,5 +125,6 @@ export {
   firebase,
   db,
   defaultSchema,
-  refs
+  refs,
+
 };
