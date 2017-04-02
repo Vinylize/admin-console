@@ -4,10 +4,14 @@ import { browserHistory, Router } from 'react-router';
 // import useRelay from 'react-router-relay';
 import Routes from './routes/Route';
 
-const Root = () => (
-  <Router
-    history={browserHistory} routes={Routes}
-  />
-);
+class Root extends React.Component {
+  render() {
+    return (
+      <Router
+        history={browserHistory} routes={Routes}
+      />
+    );
+  }
+}
 
 export default Root;
