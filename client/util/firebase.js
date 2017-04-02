@@ -46,7 +46,8 @@ const refs = {
   node: {
     root: nodeRef,
     properties: nodePropertiesRef,
-    items: nodePropertiesRef.child('items')
+    items: nodePropertiesRef.child('items'),
+    coordinate: nodePropertiesRef.child('coordinate')
   },
   partner: {
     root: partnerRef,
