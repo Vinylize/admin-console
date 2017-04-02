@@ -1,8 +1,7 @@
 import firebase from 'firebase';
-import config from '../../config/environment';
 
 const checkAuthRoute = (nextState, transition) => {
-  if (!firebase.apps.length || !firebase.auth().currentUser) {
+  if (!firebase.auth().currentUser) {
     if (nextState.location.pathname !== '/login') {
       transition({
         pathname: '/login',
@@ -12,10 +11,9 @@ const checkAuthRoute = (nextState, transition) => {
   }
 };
 
-const checkAuth = () => firebase.apps.length && firebase.auth().currentUser;
+const checkAuth = () => firebase.auth().currentUser;
 
 const getAuth = (email, password) => new Promise((resolve, reject) => {
-  if (firebase.apps.length === 0) firebase.initializeApp(config.firebase);
   firebase.auth().signInWithEmailAndPassword(email, password)
   .then((result) => {
     resolve(result);
