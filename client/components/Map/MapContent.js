@@ -11,7 +11,7 @@ import {
 export default class MapContent extends React.Component {
   static propTypes = {
     center: React.PropTypes.object.isRequired,
-    zoom: React.PropTypes.object.isRequired
+    zoom: React.PropTypes.number.isRequired
   };
 
   static defaultProps = {
