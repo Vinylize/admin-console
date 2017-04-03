@@ -55,7 +55,6 @@ export default class NodeList extends React.Component {
   }
 
   initList() {
-    console.log('initList');
     refs.node.root.orderByChild('createdAt').limitToLast(20).once('value', (data) => {
       console.log(data.val());
       if (data.val()) {

@@ -8,14 +8,16 @@ import {
   refs,
 } from '../../util/firebase';
 
+import config from '../../../config/environment';
+
 export default class MapContent extends React.Component {
   static propTypes = {
     center: React.PropTypes.object.isRequired,
-    zoom: React.PropTypes.object.isRequired
+    zoom: React.PropTypes.number.isRequired
   };
 
   static defaultProps = {
-    center: { lat: 37, lng: 127.33 },
+    center: { lat: 37.536329, lng: 127.136557 },
     zoom: 11,
     text: ''
   };
@@ -24,11 +26,13 @@ export default class MapContent extends React.Component {
     super(props);
     this.state = {
       runners: {},
+      nodeCoordinates: []
     };
   }
 
   componentDidMount() {
     this.userCoordinateChildAdded = refs.user.coordinate.on('child_added', (data) => {
+      console.log(data.val());
       this.setState({ runners: { ...this.state.runners, [`${data.key}`]: data.val() } });
     });
 
@@ -45,6 +49,14 @@ export default class MapContent extends React.Component {
       delete newState[data.key];
       this.setState({ runners: newState });
     });
+
+    refs.node.coordinate.once('value', (data) => {
+      console.log(data.val());
+      if (data.val()) {
+        this.setState({ nodeCoordinates: Object.keys(data.val()).map(nodeKey => ({ id: nodeKey, ...data.val()[nodeKey] }))
+        });
+      }
+    });
   }
 
   componentWillUnmount() {
@@ -54,28 +66,48 @@ export default class MapContent extends React.Component {
   }
 
   render() {
-    const AnyReactComponent = () => <div
-      style={{
-        width: '10px',
-        height: '10px',
-        backgroundColor: 'blue',
-        borderRadius: '5px' }}
-    />
-    ;
+    const RunnerPoint = () => (
+      <div
+        style={{
+          width: '10px',
+          height: '10px',
+          backgroundColor: 'blue',
+          borderRadius: '5px' }}
+      />);
+    const NodePoint = () => (
+      <div
+        style={{
+          width: '10px',
+          height: '10px',
+          backgroundColor: 'red',
+          borderRadius: '5px' }}
+      />);
     return (
 
       <div style={{ width: '100%', height: '100vh' }}>
         <div style={{ width: '65%', height: '100vh', float: 'left' }}>
           <GoogleMapReact
+            bootstrapURLKeys={{
+              key: config.googleMap.apiKey,
+            }}
             defaultCenter={this.props.center}
             defaultZoom={this.props.zoom}
           >
             {
-              Object.keys(this.state.runners).map(key => (<AnyReactComponent
+            Object.keys(this.state.runners).map(key => (
+              <NodePoint
                 key={key}
-                lat={this.state.runners[key].lat}
-                lng={this.state.runners[key].lon}
+                lat={this.state.runners[key].l[0]}
+                lng={this.state.runners[key].l[1]}
               />))
+            }
+            {
+              this.state.nodeCoordinates.map(nodeCoordinate => (
+                <RunnerPoint
+                  key={nodeCoordinate.id}
+                  lat={nodeCoordinate.l[0]}
+                  lng={nodeCoordinate.l[1]}
+                />))
             }
           </GoogleMapReact>
         </div>
