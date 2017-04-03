@@ -73,8 +73,8 @@ export default class MapContent extends React.Component {
             {
               Object.keys(this.state.runners).map(key => (<AnyReactComponent
                 key={key}
-                lat={this.state.runners[key].lat}
-                lng={this.state.runners[key].lon}
+                lat={this.state.runners[key].l[0]}
+                lng={this.state.runners[key].l[1]}
               />))
             }
           </GoogleMapReact>

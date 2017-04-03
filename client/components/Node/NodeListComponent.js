@@ -14,6 +14,8 @@ import Divider from 'material-ui/Divider';
 import Paper from 'material-ui/Paper';
 import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
+import DropDownMenu from 'material-ui/DropDownMenu';
+import MenuItem from 'material-ui/MenuItem';
 
 import {
   Table,
@@ -42,7 +44,10 @@ export default class NodeList extends React.Component {
       createNodeModalOpen: false,
       bulkModalOpen: false,
       nodes: [],
-      isSearching: false,
+      nodeCategory: {},
+      c1: -1,
+      c2: -1,
+      c3: -1,
     };
   }
 
@@ -60,7 +65,17 @@ export default class NodeList extends React.Component {
         this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) });
       }
     });
+
+    refs.node.category.once('value', (data) => {
+      if (data.val()) {
+        this.setState({ nodeCategory: data.val() });
+      }
+    });
   }
+
+  handleC1Change = (event, index, c1) => this.setState({ c1, c2: -1, c3: -1 });
+  handleC2Change = (event, index, c2) => this.setState({ c2, c3: -1 });
+  handleC3Change = (event, index, c3) => this.setState({ c3 });
 
   handleCreateNodeModalOpen = () => {
     this.setState({ createNodeModalOpen: true });
@@ -213,6 +228,50 @@ export default class NodeList extends React.Component {
               </div>
             </div>
             <div style={{ float: 'clear' }} >
+              <div>
+                <DropDownMenu
+                  value={this.state.c1}
+                  onChange={this.handleC1Change}
+                  style={{ width: 200 }}
+                  autoWidth={false}
+                >
+                  <MenuItem disabled key={'c1--1'} value={-1} primaryText={'Please select..'} />
+                  {
+                  Object.keys(this.state.nodeCategory).map(key =>
+                    <MenuItem key={`c1-${key}`} value={key} primaryText={`${this.state.nodeCategory[key].name}`} />
+                  )
+                }
+                </DropDownMenu>
+                <DropDownMenu
+                  value={this.state.c2}
+                  onChange={this.handleC2Change}
+                  style={{ width: 200 }}
+                  autoWidth={false}
+                >
+                  <MenuItem disabled key={'c2--1'} value={-1} primaryText={'Please select..'} />
+                  {
+                  this.state.nodeCategory[this.state.c1] ? Object.keys(this.state.nodeCategory[this.state.c1].detail).map(key =>
+                    <MenuItem key={`c2-${key}`} value={key} primaryText={`${this.state.nodeCategory[this.state.c1].detail[key].name}`} />
+                  ) : null
+                }
+                </DropDownMenu>
+                <FlatButton style={{ height: 50 }}label='Filter' primary />
+              </div>
+
+              {/* <DropDownMenu*/}
+              {/* value={this.state.c3}*/}
+              {/* onChange={this.handleC3Change}*/}
+              {/* style={{ width: 200 }}*/}
+              {/* autoWidth={false}*/}
+              {/* >*/}
+              {/* <MenuItem disabled key={'c3-1'} value={-1} primaryText={'Please select..'} />*/}
+              {/* {*/}
+
+              {/* this.state.nodeCategory[this.state.c1] ? Object.keys(this.state.nodeCategory[this.state.c1].detail).map(key =>*/}
+              {/* <MenuItem key={`c3-${key}`} value={key} primaryText={`${this.state.nodeCategory[this.state.c1].detail[key].name}`} />*/}
+              {/* ) : null*/}
+              {/* }*/}
+              {/* </DropDownMenu>*/}
               <Table
                 selectable
                 fixedHeader

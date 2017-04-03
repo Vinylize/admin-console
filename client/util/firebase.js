@@ -20,6 +20,8 @@ const nodePropertiesRef = db.ref('/nodeProperties');
 const partnerRef = db.ref('/partner');
 const partnerPropertiesRef = db.ref('/partnerProperties');
 
+const categoryRef = db.ref('/category');
+
 // synchronized with documentation
 const refs = {
   user: {
@@ -47,7 +49,8 @@ const refs = {
     root: nodeRef,
     properties: nodePropertiesRef,
     items: nodePropertiesRef.child('items'),
-    coordinate: nodePropertiesRef.child('coordinate')
+    coordinate: nodePropertiesRef.child('coordinate'),
+    category: categoryRef.child('node')
   },
   partner: {
     root: partnerRef,
