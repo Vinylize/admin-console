@@ -55,9 +55,7 @@ export default class NodeList extends React.Component {
   }
 
   initList() {
-    console.log('initList');
     refs.node.root.orderByChild('createdAt').limitToLast(20).once('value', (data) => {
-      console.log(data.val());
       if (data.val()) {
         this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) });
       }
@@ -231,12 +229,12 @@ export default class NodeList extends React.Component {
                 </TableHeader>
                 <TableBody>
                   {this.state.nodes.map((node) => {
-                    const time = node.createdAt ? moment(node.createdAt).calendar() : 'N/A';
+                    const time = node.cAt ? moment(node.cAt).calendar() : 'N/A';
                     return (
                       <TableRow key={node.id}>
-                        <TableRowColumn colSpan='2'><img width={50} role='presentation' src={node.imageUrl} /></TableRowColumn>
+                        <TableRowColumn colSpan='2'><img width={50} role='presentation' src={node.imgUrl} /></TableRowColumn>
                         <TableRowColumn colSpan='2'>{node.name}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{node.address}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{node.addr}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{node.phone}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{`${time}`}</TableRowColumn>
                         <TableRowColumn colSpan='3'>
