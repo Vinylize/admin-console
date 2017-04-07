@@ -125,7 +125,7 @@ export default class NodeDetail extends React.Component {
         <div style={{ width: '90%', margin: 'auto' }}>
           <Paper style={{ paddingLeft: '70px', paddingTop: '30px', paddingBottom: '30px' }}>
             <h4>{`Node ${this.props.params.id} - Basic Information`}</h4>
-            <h6>Image</h6><img width={100} role='presentation' src={this.state.node.imageUrl} />
+            <h6>Image</h6><img width={100} role='presentation' src={this.state.node.imgUrl} />
             <h6>update Image</h6>
             <div className='previewComponent'>
               <form onSubmit={e => this.handleSubmit(e)}>
