@@ -33,14 +33,12 @@ export default class MapContent extends React.Component {
     });
 
     this.userCoordinateChildChanged = refs.user.coordinate.on('child_changed', (data) => {
-      console.log('child_changed', data.key, data.val());
       const newState = this.state.runners;
       newState[data.key] = data.val();
       this.setState({ runners: newState });
     });
 
     this.userCoordinateChildRemoved = refs.user.coordinate.on('child_removed', (data) => {
-      console.log('child_removed', data.key, data.val());
       const newState = this.state.runners;
       delete newState[data.key];
       this.setState({ runners: newState });
@@ -73,8 +71,8 @@ export default class MapContent extends React.Component {
             {
               Object.keys(this.state.runners).map(key => (<AnyReactComponent
                 key={key}
-                lat={this.state.runners[key].lat}
-                lng={this.state.runners[key].lon}
+                lat={this.state.runners[key].l[0]}
+                lng={this.state.runners[key].l[1]}
               />))
             }
           </GoogleMapReact>
