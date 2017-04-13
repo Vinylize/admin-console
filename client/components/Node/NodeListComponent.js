@@ -89,11 +89,11 @@ export default class NodeList extends React.Component {
     client.mutate(`{
      createNodeFromAdmin(
        input:{
-         name: "${this.nameInput.getValue()}",
-         phone: "${this.phoneInput.getValue()}",
-         address: "${this.addressInput.getValue()}",
-         category1: "${this.firstCategoryInput.getValue()}",
-         category2: "${this.secondCategoryInput.getValue()}",
+         n: "${this.nameInput.getValue()}",
+         p: "${this.phoneInput.getValue()}",
+         addr: "${this.addressInput.getValue()}",
+         c1: ${this.firstCategoryInput.getValue()},
+         c2: ${this.secondCategoryInput.getValue()},
          type: "${this.typeInput.getValue()}",
          lat: ${this.latInput.getValue()}
          lon: ${this.lonInput.getValue()}
