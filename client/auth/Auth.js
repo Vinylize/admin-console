@@ -1,8 +1,12 @@
 import firebase from 'firebase';
 import client from '../util/lokka';
 
+const checkAuth = () => firebase.auth().currentUser;
+
 const checkAuthRoute = (nextState, transition) => {
-  if (!firebase.auth().currentUser) {
+  if (!checkAuth()) {
+    console.log('no login info');
+    console.log(nextState.location.pathname);
     if (nextState.location.pathname !== '/login') {
       transition({
         pathname: '/login',
@@ -11,8 +15,6 @@ const checkAuthRoute = (nextState, transition) => {
     }
   }
 };
-
-const checkAuth = () => firebase.auth().currentUser;
 
 const getAuth = (email, password) => new Promise((resolve, reject) => {
   firebase.auth().signInWithEmailAndPassword(email, password)
@@ -34,14 +36,18 @@ const getAuth = (email, password) => new Promise((resolve, reject) => {
 
 
 const deleteAuth = (nextState, transition) => {
-  if (!checkAuth()) transition('/');
-  const email = firebase.auth().currentUser.email;
-  firebase.auth().signOut().then(() => {
-    alert(`${email} is logged out!`);
-  }, (error) => {
-    alert(error);
-  });
-  transition('/');
+  if (!checkAuth()) {
+    alert('Login first!');
+    transition('/');
+  } else {
+    const email = firebase.auth().currentUser.email;
+    firebase.auth().signOut().then(() => {
+      alert(`${email} is logged out!`);
+    }, (error) => {
+      alert(error);
+    });
+    transition('/login');
+  }
 };
 
 export {

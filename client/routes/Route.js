@@ -28,7 +28,7 @@ import { deleteAuth, checkAuthRoute } from '../auth/Auth';
 
 export default (
   <Route path='/' component={AppComponent}>
-    <IndexRoute component={DashboardComponent} />
+    <IndexRoute component={DashboardComponent} onEnter={checkAuthRoute} />
     <Route path='/login' component={LoginComponent} onEnter={checkAuthRoute} />
 
     <Route path='/user' component={UserMainComponent} onEnter={checkAuthRoute}>
