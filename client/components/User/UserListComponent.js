@@ -56,11 +56,11 @@ class UserList extends React.Component {
     console.log(evt.target.value);
   }
   handleCreateUserModalOpen = () => {
-    this.setState({ createNodeModalOpen: true });
+    this.setState({ createUserModalOpen: true });
   };
 
   handleCreateUserModalClose = () => {
-    this.setState({ createNodeModalOpen: false });
+    this.setState({ createUserModalOpen: false });
   };
 
 
@@ -165,13 +165,13 @@ class UserList extends React.Component {
                 </TableHeader>
                 <TableBody>
                   {this.state.users.map((user) => {
-                    const time = moment(user.createdAt).calendar();
+                    const time = moment(user.cAt).calendar();
                     return (
                       <TableRow key={user.id}>
-                        <TableRowColumn colSpan='4'>{user.email}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{user.name}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{user.phoneNumber}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>{user.isPhoneValid ? 'YES' : 'NO'}</TableRowColumn>
+                        <TableRowColumn colSpan='4'>{user.e}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{user.n}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{user.p}</TableRowColumn>
+                        <TableRowColumn colSpan='2'>{user.isPV ? 'YES' : 'NO'}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{`${time}`}</TableRowColumn>
                         <TableRowColumn colSpan='3'>
                           <Link to={`/user/${user.id}`}>
@@ -207,7 +207,7 @@ class UserList extends React.Component {
             title='Create User'
             actions={createUserModalActions}
             modal
-            open={this.state.createNodeModalOpen}
+            open={this.state.createUserModalOpen}
             contentStyle={{ width: 400 }}
             onRequestClose={this.handleCreateUserModalClose}
           >
