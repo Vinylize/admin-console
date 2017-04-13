@@ -74,7 +74,7 @@ export default class NodeDetail extends React.Component {
 
     const data = new FormData();
     data.append('file', this.state.file);
-    const url = `${uploadBaseUrl}mutation{uploadNodeImage(input:{nodeId:"${this.props.params.id}"}){imageUrl clientMutationId}}`;
+    const url = `${uploadBaseUrl}mutation{uploadNodeImage(input:{nodeId:"${this.props.params.id}"}){imgUrl clientMutationId}}`;
     console.log(url);
     return firebase.auth().getToken()
       .then(token => fetch(url,
