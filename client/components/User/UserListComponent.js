@@ -56,11 +56,11 @@ class UserList extends React.Component {
     console.log(evt.target.value);
   }
   handleCreateUserModalOpen = () => {
-    this.setState({ createUserModalOpen: true });
+    this.setState({ createNodeModalOpen: true });
   };
 
   handleCreateUserModalClose = () => {
-    this.setState({ createUserModalOpen: false });
+    this.setState({ createNodeModalOpen: false });
   };
 
 
@@ -207,7 +207,7 @@ class UserList extends React.Component {
             title='Create User'
             actions={createUserModalActions}
             modal
-            open={this.state.createUserModalOpen}
+            open={this.state.createNodeModalOpen}
             contentStyle={{ width: 400 }}
             onRequestClose={this.handleCreateUserModalClose}
           >

@@ -1,3 +1,4 @@
+import csv from 'csv-string';
 import React from 'react';
 import moment from 'moment';
 
@@ -5,6 +6,7 @@ import { Link } from 'react-router';
 
 import FloatingActionButton from 'material-ui/FloatingActionButton';
 import ContentAdd from 'material-ui/svg-icons/content/add';
+import ActionNoteAdd from 'material-ui/svg-icons/action/note-add';
 import RaisedButton from 'material-ui/RaisedButton';
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
@@ -12,6 +14,8 @@ import Divider from 'material-ui/Divider';
 import Paper from 'material-ui/Paper';
 import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
+import DropDownMenu from 'material-ui/DropDownMenu';
+import MenuItem from 'material-ui/MenuItem';
 
 import {
   Table,
@@ -37,42 +41,62 @@ export default class NodeList extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      createUserModalOpen: false,
+      createNodeModalOpen: false,
+      bulkModalOpen: false,
       nodes: [],
-      isSearching: false,
+      nodeCategory: {},
+      c1: -1,
+      c2: -1,
+      c3: -1,
     };
   }
 
   componentDidMount() {
-    this.userRootChildAdded = refs.node.root.orderByKey().on('child_added', (data) => {
-      console.log(data.val());
-      this.setState({ nodes: this.state.nodes.concat(data.val()) });
-    });
+    this.initList();
   }
 
   componentWillUnmount() {
-    refs.node.root.off('child_added', this.userRootChildAdded);
+
   }
 
+  initList() {
+    refs.node.root.orderByChild('createdAt').limitToLast(20).once('value', (data) => {
+      if (data.val()) {
+        this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) });
+      }
+    });
+
+    refs.node.category.once('value', (data) => {
+      if (data.val()) {
+        this.setState({ nodeCategory: data.val() });
+      }
+    });
+  }
+
+  handleC1Change = (event, index, c1) => this.setState({ c1, c2: -1, c3: -1 });
+  handleC2Change = (event, index, c2) => this.setState({ c2, c3: -1 });
+  handleC3Change = (event, index, c3) => this.setState({ c3 });
+
   handleCreateNodeModalOpen = () => {
-    this.setState({ createUserModalOpen: true });
+    this.setState({ createNodeModalOpen: true });
   };
 
   handleCreateNodeModalClose = () => {
-    this.setState({ createUserModalOpen: false });
+    this.setState({ createNodeModalOpen: false });
   };
 
   handleCreateNodeModalCreate = () => {
     client.mutate(`{
      createNodeFromAdmin(
        input:{
-         name: "${this.nameInput.getValue()}",
-         address: "${this.addressInput.getValue()}",
-         category1: "${this.firstCategoryInput.getValue()}",
-         category2: "${this.secondCategoryInput.getValue()}",
+         n: "${this.nameInput.getValue()}",
+         p: "${this.phoneInput.getValue()}",
+         addr: "${this.addressInput.getValue()}",
+         c1: ${this.firstCategoryInput.getValue()},
+         c2: ${this.secondCategoryInput.getValue()},
          type: "${this.typeInput.getValue()}",
          lat: ${this.latInput.getValue()}
-         lng: ${this.lngInput.getValue()}
+         lon: ${this.lonInput.getValue()}
        }
      ) {
        result
@@ -80,7 +104,54 @@ export default class NodeList extends React.Component {
    }`
     )
       .then(() => {
-        this.setState({ createUserModalOpen: false });
+        this.setState({ bulkModalOpen: false });
+      })
+      .catch(console.log);
+  };
+
+  handleCreateNodeFromBulkModalOpen = () => {
+    this.setState({ bulkModalOpen: true });
+  };
+
+  handleCreateNodeFromBulkModalClose = () => {
+    this.setState({ bulkModalOpen: false });
+  };
+
+  handleCreateNodeFromBulkModalCreate = () => {
+    const p = [];
+    csv.forEach(this.bulkInput.getValue(), ',', (row, index) => {
+      if (index === 0) {
+        this.header = row;
+        return;
+      }
+      if (row.length === 1) {
+        return;
+      }
+
+      p.push(new Promise((resolve, reject) => client.mutate(`{
+        createNodeFromAdmin(
+          input:{
+            ${this.header[0]}: "${row[0]}",
+            ${this.header[1]}: "${row[1]}",
+            ${this.header[2]}: "${row[2]}",
+            ${this.header[3]}: "${row[3]}",
+            ${this.header[4]}: "${row[4]}",
+            ${this.header[5]}: "${row[5]}",
+            ${this.header[6]}: ${row[6]},
+            ${this.header[7]}: ${row[7]},
+            type: "non-partenerd"
+          }
+        ) {
+            result
+          }
+        }`
+        ).then(resolve)
+          .catch(reject)));
+    });
+    Promise.all(p)
+      .then(() => {
+        this.initList();
+        this.setState({ bulkModalOpen: false });
       })
       .catch(console.log);
   };
@@ -93,7 +164,7 @@ export default class NodeList extends React.Component {
   }
 
   render() {
-    const createUserModalActions = [
+    const createNodeModalActions = [
       <FlatButton
         label='Cancel'
         primary
@@ -106,6 +177,19 @@ export default class NodeList extends React.Component {
       />,
     ];
 
+    const createNodeFromBulkModalActions = [
+      <FlatButton
+        label='Cancel'
+        primary
+        onTouchTap={this.handleCreateNodeFromBulkModalClose}
+      />,
+      <FlatButton
+        label='Create'
+        primary
+        onTouchTap={this.handleCreateNodeFromBulkModalCreate}
+      />,
+    ];
+
     return (
       <div>
         <div style={{ width: '100%', margin: 'auto' }}>
@@ -113,6 +197,9 @@ export default class NodeList extends React.Component {
             <div style={{ display: 'flex', height: 150, flexDirection: 'row', paddingLeft: 30, paddingRight: 40, alignItems: 'center' }} >
               <h3>List of Node</h3>
               <div style={{ display: 'flex', height: 56, flex: 1, justifyContent: 'flex-end', }}>
+                <FloatingActionButton onClick={this.handleCreateNodeFromBulkModalOpen}>
+                  <ActionNoteAdd name='addBulk' />
+                </FloatingActionButton>
                 <FloatingActionButton onClick={this.handleCreateNodeModalOpen}>
                   <ContentAdd name='add' />
                 </FloatingActionButton>
@@ -141,29 +228,73 @@ export default class NodeList extends React.Component {
               </div>
             </div>
             <div style={{ float: 'clear' }} >
+              <div>
+                <DropDownMenu
+                  value={this.state.c1}
+                  onChange={this.handleC1Change}
+                  style={{ width: 200 }}
+                  autoWidth={false}
+                >
+                  <MenuItem disabled key={'c1--1'} value={-1} primaryText={'Please select..'} />
+                  {
+                  Object.keys(this.state.nodeCategory).map(key =>
+                    <MenuItem key={`c1-${key}`} value={key} primaryText={`${this.state.nodeCategory[key].name}`} />
+                  )
+                }
+                </DropDownMenu>
+                <DropDownMenu
+                  value={this.state.c2}
+                  onChange={this.handleC2Change}
+                  style={{ width: 200 }}
+                  autoWidth={false}
+                >
+                  <MenuItem disabled key={'c2--1'} value={-1} primaryText={'Please select..'} />
+                  {
+                  this.state.nodeCategory[this.state.c1] ? Object.keys(this.state.nodeCategory[this.state.c1].detail).map(key =>
+                    <MenuItem key={`c2-${key}`} value={key} primaryText={`${this.state.nodeCategory[this.state.c1].detail[key].name}`} />
+                  ) : null
+                }
+                </DropDownMenu>
+                <FlatButton style={{ height: 50 }}label='Filter' primary />
+              </div>
+
+              {/* <DropDownMenu*/}
+              {/* value={this.state.c3}*/}
+              {/* onChange={this.handleC3Change}*/}
+              {/* style={{ width: 200 }}*/}
+              {/* autoWidth={false}*/}
+              {/* >*/}
+              {/* <MenuItem disabled key={'c3-1'} value={-1} primaryText={'Please select..'} />*/}
+              {/* {*/}
+
+              {/* this.state.nodeCategory[this.state.c1] ? Object.keys(this.state.nodeCategory[this.state.c1].detail).map(key =>*/}
+              {/* <MenuItem key={`c3-${key}`} value={key} primaryText={`${this.state.nodeCategory[this.state.c1].detail[key].name}`} />*/}
+              {/* ) : null*/}
+              {/* }*/}
+              {/* </DropDownMenu>*/}
               <Table
                 selectable
                 fixedHeader
               >
                 <TableHeader>
                   <TableRow>
-                    <TableHeaderColumn colSpan='4'>Name</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>image</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>Name</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>Address</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>lat</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>lng</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='3'>Phone</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>Action</TableHeaderColumn>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {this.state.nodes.map((node) => {
-                    const time = node.createdAt ? moment(node.createdAt).calendar() : 'N/A';
+                    const time = node.cAt ? moment(node.cAt).calendar() : 'N/A';
                     return (
                       <TableRow key={node.id}>
-                        <TableRowColumn colSpan='4'>{node.name}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{node.address}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{node.lat}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>{node.lng}</TableRowColumn>
+                        <TableRowColumn colSpan='2'><img width={50} role='presentation' src={node.imgUrl} /></TableRowColumn>
+                        <TableRowColumn colSpan='2'>{node.name}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{node.addr}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{node.phone}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{`${time}`}</TableRowColumn>
                         <TableRowColumn colSpan='3'>
                           <Link to={`/node/${node.id}`}>
@@ -180,9 +311,9 @@ export default class NodeList extends React.Component {
           </Paper>
           <Dialog
             title='Create Node'
-            actions={createUserModalActions}
+            actions={createNodeModalActions}
             modal
-            open={this.state.createUserModalOpen}
+            open={this.state.createNodeModalOpen}
             contentStyle={{ width: 400 }}
             onRequestClose={this.handleCreateNodeModalClose}
           >
@@ -201,6 +332,12 @@ export default class NodeList extends React.Component {
                 underlineShow={false}
               />
               <Divider />
+              <TextField
+                ref={(ref) => { this.phoneInput = ref; }}
+                hintText='phone' style={{
+                  marginLeft: 20,
+                }} underlineShow={false}
+              />
               <TextField
                 ref={(ref) => { this.firstCategoryInput = ref; }}
                 hintText='Category 1' style={{
@@ -230,10 +367,30 @@ export default class NodeList extends React.Component {
               />
               <Divider />
               <TextField
-                ref={(ref) => { this.lngInput = ref; }}
+                ref={(ref) => { this.lonInput = ref; }}
                 hintText='Lng' style={{
                   marginLeft: 20,
                 }} underlineShow={false}
+              />
+              <Divider />
+            </Paper>
+          </Dialog>
+          <Dialog
+            title='Create Node from bulk'
+            actions={createNodeFromBulkModalActions}
+            modal
+            open={this.state.bulkModalOpen}
+            contentStyle={{ width: 400 }}
+            onRequestClose={this.handleCreateNodeFromBulkModalClose}
+          >
+            <Paper zDepth={0}>
+              <TextField
+                multiLine
+                rowsMax={5}
+                ref={(ref) => { this.bulkInput = ref; }}
+                hintText='bulk text'
+                style={{ marginLeft: 20 }}
+                underlineShow={false}
               />
               <Divider />
             </Paper>
