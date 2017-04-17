@@ -59,6 +59,35 @@ export default class NodeList extends React.Component {
 
   }
 
+  getNodeCategoryFromServer = () => client.query(`{
+    viewer {
+      nodeCategory
+    }
+  }`).then(response => JSON.parse(response.viewer.nodeCategory));
+
+  getCategoryNumber = (c1String, c2String) => {
+    let c1 = 999; // default category
+    let c2 = 999;
+    if (!c1String) {
+      return { c1, c2 };
+    }
+    const category1 = Object.keys(this.state.nodeCategory)
+      .map(key => ({ [`${key}`]: this.state.nodeCategory[key].name }))
+      .filter(el => Object.values(el)[0] === c1String);
+    if (category1[0]) {
+      c1 = Number(Object.keys(category1[0])[0]);
+    }
+    if (c1 !== 999) {
+      const category2 = Object.keys(this.state.nodeCategory[c1].detail)
+        .map(key => ({ [`${key}`]: this.state.nodeCategory[c1].detail[key].name }))
+        .filter(el => Object.values(el)[0] === c2String);
+      if (category2[0]) {
+        c2 = Number(Object.keys(category2[0])[0]);
+      }
+    }
+    return { c1, c2 };
+  };
+
   initList() {
     refs.node.root.orderByChild('createdAt').limitToLast(20).once('value', (data) => {
       if (data.val()) {
@@ -66,11 +95,10 @@ export default class NodeList extends React.Component {
       }
     });
 
-    refs.node.category.once('value', (data) => {
-      if (data.val()) {
-        this.setState({ nodeCategory: data.val() });
-      }
-    });
+    this.getNodeCategoryFromServer()
+      .then((nodeCategory) => {
+        this.setState({ nodeCategory });
+      });
   }
 
   handleC1Change = (event, index, c1) => this.setState({ c1, c2: -1, c3: -1 });
@@ -85,29 +113,62 @@ export default class NodeList extends React.Component {
     this.setState({ createNodeModalOpen: false });
   };
 
-  handleCreateNodeModalCreate = () => {
-    client.mutate(`{
+  createNodeMutation = node => client.mutate(`{
      createNodeFromAdmin(
        input:{
-         n: "${this.nameInput.getValue()}",
-         p: "${this.phoneInput.getValue()}",
-         addr: "${this.addressInput.getValue()}",
-         c1: ${this.firstCategoryInput.getValue()},
-         c2: ${this.secondCategoryInput.getValue()},
-         type: "${this.typeInput.getValue()}",
-         lat: ${this.latInput.getValue()}
-         lon: ${this.lonInput.getValue()}
+         n: "${node.n}",
+         p: "${node.p}",
+         addr: "${node.addr}",
+         c1: ${node.c1},
+         c2: ${node.c2},
+         type: "${node.type}",
+         lat: ${node.lat}
+         lon: ${node.lon}
        }
      ) {
        result
      }
    }`
-    )
+  );
+
+  convertCategoryString = prevNode =>
+    // prevNode.c1 = prevNode
+    // prevNode.c2 =
+
+     prevNode
+
+  handleCreateNodeModalCreate = () => {
+    this.createNodeMutation({
+      n: this.nInput.getValue(),
+      p: this.pInput.getValue(),
+      addr: this.addrInput.getValue(),
+      c1: this.c1Input.getValue(),
+      c2: this.c2Input.getValue(),
+      type: this.typeInput.getValue(),
+      lat: this.latInput.getValue(),
+      lon: this.lonInput.getValue(),
+    })
       .then(() => {
         this.setState({ bulkModalOpen: false });
       })
       .catch(console.log);
   };
+
+  createNodeObject(header, row) {
+    const categories = this.getCategoryNumber(row[0], row[1]);
+
+    return {
+      [`${header[0]}`]: categories.c1,
+      [`${header[1]}`]: categories.c2,
+      [`${header[2]}`]: row[2],
+      [`${header[3]}`]: row[3],
+      [`${header[4]}`]: row[4],
+      [`${header[5]}`]: row[5],
+      [`${header[6]}`]: Number(row[6]),
+      [`${header[7]}`]: Number(row[7]),
+      type: 'non-partenerd'
+    };
+  }
 
   handleCreateNodeFromBulkModalOpen = () => {
     this.setState({ bulkModalOpen: true });
@@ -127,19 +188,18 @@ export default class NodeList extends React.Component {
       if (row.length === 1) {
         return;
       }
-
+      const nodeObj = this.createNodeObject(this.header, row);
       p.push(new Promise((resolve, reject) => client.mutate(`{
         createNodeFromAdmin(
-          input:{
-            ${this.header[0]}: "${row[0]}",
-            ${this.header[1]}: "${row[1]}",
-            ${this.header[2]}: "${row[2]}",
-            ${this.header[3]}: "${row[3]}",
-            ${this.header[4]}: "${row[4]}",
-            ${this.header[5]}: "${row[5]}",
-            ${this.header[6]}: ${row[6]},
-            ${this.header[7]}: ${row[7]},
-            type: "non-partenerd"
+          input: {
+          c1: ${nodeObj.c1}
+          c2: ${nodeObj.c2}
+          n: "${nodeObj.n}"
+          p: "${nodeObj.p}"
+          addr: "${nodeObj.addr}"
+          lon: ${nodeObj.lon}
+          lat: ${nodeObj.lat}
+          type: "${nodeObj.type}"
           }
         ) {
             result
@@ -292,9 +352,9 @@ export default class NodeList extends React.Component {
                     return (
                       <TableRow key={node.id}>
                         <TableRowColumn colSpan='2'><img width={50} role='presentation' src={node.imgUrl} /></TableRowColumn>
-                        <TableRowColumn colSpan='2'>{node.name}</TableRowColumn>
+                        <TableRowColumn colSpan='2'>{node.n}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{node.addr}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{node.phone}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{node.p}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{`${time}`}</TableRowColumn>
                         <TableRowColumn colSpan='3'>
                           <Link to={`/node/${node.id}`}>
@@ -319,34 +379,34 @@ export default class NodeList extends React.Component {
           >
             <Paper zDepth={0}>
               <TextField
-                ref={(ref) => { this.nameInput = ref; }}
+                ref={(ref) => { this.nInput = ref; }}
                 hintText='Name'
                 style={{ marginLeft: 20 }}
                 underlineShow={false}
               />
               <Divider />
               <TextField
-                ref={(ref) => { this.addressInput = ref; }}
+                ref={(ref) => { this.addrInput = ref; }}
                 hintText='Address'
                 style={{ marginLeft: 20 }}
                 underlineShow={false}
               />
               <Divider />
               <TextField
-                ref={(ref) => { this.phoneInput = ref; }}
+                ref={(ref) => { this.pInput = ref; }}
                 hintText='phone' style={{
                   marginLeft: 20,
                 }} underlineShow={false}
               />
               <TextField
-                ref={(ref) => { this.firstCategoryInput = ref; }}
+                ref={(ref) => { this.c1Input = ref; }}
                 hintText='Category 1' style={{
                   marginLeft: 20,
                 }} underlineShow={false}
               />
               <Divider />
               <TextField
-                ref={(ref) => { this.secondCategoryInput = ref; }}
+                ref={(ref) => { this.c2Input = ref; }}
                 hintText='Category 2' style={{
                   marginLeft: 20,
                 }} underlineShow={false}
