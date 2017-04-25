@@ -25,7 +25,7 @@ export default class RunnerJudgeList extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      createUserModalOpen: false,
+      idImageModalOpen: false,
       users: [],
       isSearching: false,
       idImageUrl: '',
@@ -50,9 +50,9 @@ export default class RunnerJudgeList extends React.Component {
     console.log(evt.target.value);
   }
 
-  handleIdImageModalOpen = (idUrl) => {
+  handleIdImageModalOpen = (evt) => {
     this.setState({ idImageModalOpen: true });
-    this.setState({ idUrl });
+    this.setState({ idUrl: evt.target.src });
   };
 
   handleIdImageModalClose = () => {
@@ -168,15 +168,17 @@ export default class RunnerJudgeList extends React.Component {
                   {this.state.users.map((user) => {
                     const cTime = moment(user.cAt).calendar();
                     return (
-                      <TableRow key={user.id} onClick={this.handleIdImageModalOpen(user.idUrl)}>
+                      <TableRow key={user.id}>
                         <TableRowColumn colSpan='3'>
-                          <img
-                            width={100}
-                            role='presentation'
-                            src={user.idUrl}
-                            primary
-                            style={{ cursor: 'pointer' }}
-                          />
+                          <button onClick={this.handleIdImageModalOpen} src={user.idUrl} role='button'>
+                            <img
+                              width={100}
+                              role='presentation'
+                              src={user.idUrl}
+                              style={{ cursor: 'pointer' }}
+                              type='button'
+                            />
+                          </button>
                         </TableRowColumn>
                         <TableRowColumn colSpan='4'>{user.e}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{user.n}</TableRowColumn>
@@ -207,7 +209,6 @@ export default class RunnerJudgeList extends React.Component {
                 width={400}
                 role='presentation'
                 src={this.state.idUrl}
-                primary
                 style={{
                   cursor: 'pointer',
                   margin: 20
