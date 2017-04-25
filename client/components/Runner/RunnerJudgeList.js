@@ -30,6 +30,7 @@ export default class RunnerJudgeList extends React.Component {
       isSearching: false,
       idImageUrl: '',
     };
+    this.handleIdImageModalOpen = this.handleIdImageModalOpen.bind(this);
   }
 
   componentDidMount() {
@@ -50,9 +51,9 @@ export default class RunnerJudgeList extends React.Component {
     console.log(evt.target.value);
   }
 
-  handleIdImageModalOpen = (evt) => {
+  handleIdImageModalOpen = (evt, idUrl) => {
     this.setState({ idImageModalOpen: true });
-    this.setState({ idUrl: evt.target.src });
+    this.setState({ idUrl });
   };
 
   handleIdImageModalClose = () => {
@@ -170,13 +171,12 @@ export default class RunnerJudgeList extends React.Component {
                     return (
                       <TableRow key={user.id}>
                         <TableRowColumn colSpan='3'>
-                          <button onClick={this.handleIdImageModalOpen} src={user.idUrl} role='button'>
+                          <button onClick={({ evt }) => this.handleIdImageModalOpen(evt, user.idUrl)} style={{ border: 0, outline: 0, background: 'none' }}>
                             <img
                               width={100}
                               role='presentation'
                               src={user.idUrl}
                               style={{ cursor: 'pointer' }}
-                              type='button'
                             />
                           </button>
                         </TableRowColumn>
