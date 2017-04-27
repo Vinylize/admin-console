@@ -61,7 +61,6 @@ export default class RunnerList extends React.Component {
 
   handleApproveRunner = (evt, uid, approve) => {
     evt.preventDefault();
-    // TODO: do something with -> this.state.file
     const url = approve ? `${uploadBaseUrl}mutation{adminApproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminDisapproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}`;
     console.log(url);
     return firebase.auth().getToken()
