@@ -19,7 +19,12 @@ import {
   TableRowColumn
 } from 'material-ui/Table';
 
-import { refs } from '../../util/firebase';
+import {
+  firebase,
+  refs
+} from '../../util/firebase';
+
+const uploadBaseUrl = 'http://localhost:5002/graphql?query=';
 
 export default class RunnerJudgeList extends React.Component {
   constructor(props) {
@@ -31,6 +36,8 @@ export default class RunnerJudgeList extends React.Component {
       idImageUrl: '',
     };
     this.handleIdImageModalOpen = this.handleIdImageModalOpen.bind(this);
+    this.handleIdImageModalClose = this.handleIdImageModalClose.bind(this);
+    this.handleApproveRunner = this.handleApproveRunner.bind(this);
   }
 
   componentDidMount() {
@@ -61,6 +68,36 @@ export default class RunnerJudgeList extends React.Component {
     this.setState({ idUrl: '' });
   };
 
+  handleApproveRunner = (evt, uid, approve) => {
+    evt.preventDefault();
+    // TODO: do something with -> this.state.file
+    const url = approve ? `${uploadBaseUrl}mutation{adminApproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminDisapproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}`;
+    console.log(url);
+    return firebase.auth().getToken()
+      .then(token => fetch(url,
+        {
+          method: 'POST',
+          headers: {
+            authorization: token.accessToken
+          }
+        }))
+      .then(response => response.json())
+      .then((response) => {
+        if (response.errors) {
+          console.log(response.errors);
+          alert(response.errors[0].message);
+          return;
+        }
+        console.log(response.data);
+        setTimeout(() => {
+          this.setState({ users: [] });
+          this.userRootChildAdded = refs.user.root.orderByChild('isWJ').equalTo(true).on('child_added', (data) => {
+            if (data.val()) this.setState({ users: this.state.users.concat(data.val()) });
+          });
+        }, 200);
+      })
+      .catch();
+  }
 
   renderSpinner() {
     if (this.state.isSearching) {
@@ -84,16 +121,7 @@ export default class RunnerJudgeList extends React.Component {
           <Paper>
             <div style={{ display: 'flex', height: 150, flexDirection: 'row', paddingLeft: 30, paddingRight: 40, alignItems: 'center' }} >
               <h3>List of user waiting for judge</h3>
-              {/* <div style={{ display: 'flex', height: 56, flex: 1, justifyContent: 'flex-end', }}>
-                <FloatingActionButton onClick={this.handleCreateUserModalOpen}>
-                  <ContentAdd name='add' />
-                </FloatingActionButton>
-              </div>*/}
             </div>
-            {/* <i style={{ paddingLeft: 31 }} >Action for selected user...</i>*/}
-            {/* <i style={{ paddingLeft: 31 }} >{this.props.viewer.users}</i>*/}
-
-
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
                 <RaisedButton
@@ -157,12 +185,12 @@ export default class RunnerJudgeList extends React.Component {
               >
                 <TableHeader>
                   <TableRow>
-                    <TableHeaderColumn colSpan='3'>Identification</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>Identification</TableHeaderColumn>
                     <TableHeaderColumn colSpan='4'>Email</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>Name</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>phoneNumber</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Action</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='4'>Action</TableHeaderColumn>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -170,10 +198,10 @@ export default class RunnerJudgeList extends React.Component {
                     const cTime = moment(user.cAt).calendar();
                     return (
                       <TableRow key={user.id}>
-                        <TableRowColumn colSpan='3'>
+                        <TableRowColumn colSpan='2'>
                           <button onClick={({ evt }) => this.handleIdImageModalOpen(evt, user.idUrl)} style={{ border: 0, outline: 0, background: 'none' }}>
                             <img
-                              width={100}
+                              width={75}
                               role='presentation'
                               src={user.idUrl}
                               style={{ cursor: 'pointer' }}
@@ -184,10 +212,34 @@ export default class RunnerJudgeList extends React.Component {
                         <TableRowColumn colSpan='3'>{user.n}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{user.p}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{`${cTime}`}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>
+                        <TableRowColumn colSpan='4'>
                           <Link to={`/runner/${user.id}`}>
-                            <RaisedButton label='Details' />
+                            <RaisedButton
+                              label='Details'
+                              primary
+                              style={{
+                                margin: 5
+                              }}
+                            />
                           </Link>
+                          <br />
+                          <RaisedButton
+                            label='Approve'
+                            backgroundColor='#a4c639'
+                            labelColor='#FFFFFF'
+                            style={{
+                              margin: 5
+                            }}
+                            onClick={({ evt }) => this.handleApproveRunner(evt, user.id, true)}
+                          />
+                          <RaisedButton
+                            label='Disapprove'
+                            secondary
+                            style={{
+                              margin: 5
+                            }}
+                            onClick={({ evt }) => this.handleApproveRunner(evt, user.id, false)}
+                          />
                         </TableRowColumn>
                       </TableRow>
                     );

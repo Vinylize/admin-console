@@ -17,7 +17,12 @@ import {
   TableRowColumn
 } from 'material-ui/Table';
 
-import { refs } from '../../util/firebase';
+import {
+  firebase,
+  refs
+} from '../../util/firebase';
+
+const uploadBaseUrl = 'http://localhost:5002/graphql?query=';
 
 export default class RunnerList extends React.Component {
   constructor(props) {
@@ -54,6 +59,36 @@ export default class RunnerList extends React.Component {
     this.setState({ createUserModalOpen: false });
   };
 
+  handleApproveRunner = (evt, uid, approve) => {
+    evt.preventDefault();
+    // TODO: do something with -> this.state.file
+    const url = approve ? `${uploadBaseUrl}mutation{adminApproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminDisapproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}`;
+    console.log(url);
+    return firebase.auth().getToken()
+      .then(token => fetch(url,
+        {
+          method: 'POST',
+          headers: {
+            authorization: token.accessToken
+          }
+        }))
+      .then(response => response.json())
+      .then((response) => {
+        if (response.errors) {
+          console.log(response.errors);
+          alert(response.errors[0].message);
+          return;
+        }
+        console.log(response.data);
+        setTimeout(() => {
+          this.setState({ users: [] });
+          this.userRootChildAdded = refs.user.root.orderByChild('isRA').equalTo(true).on('child_added', (data) => {
+            if (data.val()) this.setState({ users: this.state.users.concat(data.val()) });
+          });
+        }, 200);
+      })
+      .catch();
+  }
 
   renderSpinner() {
     if (this.state.isSearching) {
@@ -69,16 +104,7 @@ export default class RunnerList extends React.Component {
           <Paper>
             <div style={{ display: 'flex', height: 150, flexDirection: 'row', paddingLeft: 30, paddingRight: 40, alignItems: 'center' }} >
               <h3>List of runner</h3>
-              {/* <div style={{ display: 'flex', height: 56, flex: 1, justifyContent: 'flex-end', }}>
-                <FloatingActionButton onClick={this.handleCreateUserModalOpen}>
-                  <ContentAdd name='add' />
-                </FloatingActionButton>
-              </div>*/}
             </div>
-            {/* <i style={{ paddingLeft: 31 }} >Action for selected user...</i>*/}
-            {/* <i style={{ paddingLeft: 31 }} >{this.props.viewer.users}</i>*/}
-
-
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
                 <RaisedButton
@@ -156,61 +182,21 @@ export default class RunnerList extends React.Component {
                           <Link to={`/runner/${user.id}`}>
                             <RaisedButton label='Details' primary />
                           </Link>
-                          {/* </RaisedButton>*/}
+                          <RaisedButton
+                            label='Disapprove'
+                            secondary
+                            style={{
+                              margin: 5
+                            }}
+                            onClick={({ evt }) => this.handleApproveRunner(evt, user.id, false)}
+                          />
                         </TableRowColumn>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table></div>
-
           </Paper>
-
-
-          {/* <DataTable
-            width='100%'
-            selectable
-            onSelectionChanged={() => {}}
-            shadow={0}
-            rowKeyColumn='id'
-            rows={data}
-          >
-            <TableHeader name='name' tooltip='name of UserList'>Name</TableHeader>
-            <TableHeader name='email' tooltip='email of user'>email</TableHeader>
-            <TableHeader numeric name='rating' tooltip='rating of user.'>Rating</TableHeader>
-            <TableHeader name='action' tooltip='Action for user.'>Action</TableHeader>
-             <TableHeader numeric name='rating' cellFormatter={price => `\$${price.toFixed(2)}`} tooltip='Price pet unit'>rating</TableHeader>
-
-          </DataTable>*/}
-          {/* <Dialog
-            title='Create User'
-            actions={createUserModalActions}
-            modal
-            open={this.state.createUserModalOpen}
-            contentStyle={{ width: 400 }}
-            onRequestClose={this.handleCreateUserModalClose}
-          >
-            <Paper zDepth={0}>
-              <TextField
-                hintText='Name' style={{
-                  marginLeft: 20
-                }} underlineShow={false}
-              />
-              <Divider />
-              <TextField
-                hintText='Email address' style={{
-                  marginLeft: 20
-                }} underlineShow={false}
-              />
-              <Divider />
-              <TextField
-                hintText='Password' style={{
-                  marginLeft: 20,
-                }} underlineShow={false}
-              />
-              <Divider />
-            </Paper>
-          </Dialog>*/}
         </div>
       </div>
     );
