@@ -159,7 +159,7 @@ export default class RunnerList extends React.Component {
                 <TableHeader>
                   <TableRow>
                     <TableHeaderColumn colSpan='4'>Email</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Name</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>Name</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>phoneNumber</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>runnerApprovedAt</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
@@ -173,7 +173,7 @@ export default class RunnerList extends React.Component {
                     return (
                       <TableRow key={user.id}>
                         <TableRowColumn colSpan='4'>{user.e}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{user.n}</TableRowColumn>
+                        <TableRowColumn colSpan='2'>{user.n}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{user.p}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{`${rATime}`}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{`${cTime}`}</TableRowColumn>
@@ -187,7 +187,7 @@ export default class RunnerList extends React.Component {
                             style={{
                               margin: 5
                             }}
-                            onClick={({ evt }) => this.handleApproveRunner(evt, user.id, false)}
+                            onClick={(evt) => { this.handleApproveRunner(evt, user.id, false); }}
                           />
                         </TableRowColumn>
                       </TableRow>

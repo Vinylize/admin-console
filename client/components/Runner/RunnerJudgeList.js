@@ -229,7 +229,7 @@ export default class RunnerJudgeList extends React.Component {
                             style={{
                               margin: 5
                             }}
-                            onClick={({ evt }) => this.handleApproveRunner(evt, user.id, true)}
+                            onClick={(evt) => { this.handleApproveRunner(evt, user.id, true); }}
                           />
                           <RaisedButton
                             label='Disapprove'
@@ -237,7 +237,7 @@ export default class RunnerJudgeList extends React.Component {
                             style={{
                               margin: 5
                             }}
-                            onClick={({ evt }) => this.handleApproveRunner(evt, user.id, false)}
+                            onClick={(evt) => { this.handleApproveRunner(evt, user.id, false); }}
                           />
                         </TableRowColumn>
                       </TableRow>
