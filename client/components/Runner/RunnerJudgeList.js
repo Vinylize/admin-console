@@ -4,6 +4,8 @@ import moment from 'moment';
 import { Link } from 'react-router';
 
 import RaisedButton from 'material-ui/RaisedButton';
+import Dialog from 'material-ui/Dialog';
+import FlatButton from 'material-ui/FlatButton';
 import Paper from 'material-ui/Paper';
 import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
@@ -24,18 +26,22 @@ import {
 
 const uploadBaseUrl = 'http://localhost:5002/graphql?query=';
 
-export default class RunnerList extends React.Component {
+export default class RunnerJudgeList extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      createUserModalOpen: false,
+      idImageModalOpen: false,
       users: [],
       isSearching: false,
+      idImageUrl: '',
     };
+    this.handleIdImageModalOpen = this.handleIdImageModalOpen.bind(this);
+    this.handleIdImageModalClose = this.handleIdImageModalClose.bind(this);
+    this.handleApproveRunner = this.handleApproveRunner.bind(this);
   }
 
   componentDidMount() {
-    this.userRootChildAdded = refs.user.root.orderByChild('isRA').equalTo(true).on('child_added', (data) => {
+    this.userRootChildAdded = refs.user.root.orderByChild('isWJ').equalTo(true).on('child_added', (data) => {
       this.setState({ users: this.state.users.concat(data.val()) });
     });
   }
@@ -51,12 +57,15 @@ export default class RunnerList extends React.Component {
     }, 4000);
     console.log(evt.target.value);
   }
-  handleCreateUserModalOpen = () => {
-    this.setState({ createUserModalOpen: true });
+
+  handleIdImageModalOpen = (evt, idUrl) => {
+    this.setState({ idImageModalOpen: true });
+    this.setState({ idUrl });
   };
 
-  handleCreateUserModalClose = () => {
-    this.setState({ createUserModalOpen: false });
+  handleIdImageModalClose = () => {
+    this.setState({ idImageModalOpen: false });
+    this.setState({ idUrl: '' });
   };
 
   handleApproveRunner = (evt, uid, approve) => {
@@ -81,7 +90,7 @@ export default class RunnerList extends React.Component {
         console.log(response.data);
         setTimeout(() => {
           this.setState({ users: [] });
-          this.userRootChildAdded = refs.user.root.orderByChild('isRA').equalTo(true).on('child_added', (data) => {
+          this.userRootChildAdded = refs.user.root.orderByChild('isWJ').equalTo(true).on('child_added', (data) => {
             if (data.val()) this.setState({ users: this.state.users.concat(data.val()) });
           });
         }, 200);
@@ -97,12 +106,20 @@ export default class RunnerList extends React.Component {
   }
 
   render() {
+    const idImageModalActions = [
+      <FlatButton
+        label='Cancel'
+        primary
+        onTouchTap={this.handleIdImageModalClose}
+      />
+    ];
+
     return (
       <div>
         <div style={{ width: '100%', margin: 'auto' }}>
           <Paper>
             <div style={{ display: 'flex', height: 150, flexDirection: 'row', paddingLeft: 30, paddingRight: 40, alignItems: 'center' }} >
-              <h3>List of runner</h3>
+              <h3>List of user waiting for judge</h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
@@ -128,6 +145,15 @@ export default class RunnerList extends React.Component {
                   disabled
                   style={{
                     margin: 12,
+                  }}
+                />
+                <RaisedButton
+                  label='APPROVE'
+                  primary
+                  disabled
+                  style={{
+                    margin: 12,
+                    marginLeft: 50,
                   }}
                 />
 
@@ -158,29 +184,53 @@ export default class RunnerList extends React.Component {
               >
                 <TableHeader>
                   <TableRow>
+                    <TableHeaderColumn colSpan='2'>Identification</TableHeaderColumn>
                     <TableHeaderColumn colSpan='4'>Email</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>Name</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='3'>Name</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>phoneNumber</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>runnerApprovedAt</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Action</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='4'>Action</TableHeaderColumn>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {this.state.users.map((user) => {
                     const cTime = moment(user.cAt).calendar();
-                    const rATime = moment(user.rAAt).calendar();
                     return (
                       <TableRow key={user.id}>
+                        <TableRowColumn colSpan='2'>
+                          <button onClick={({ evt }) => this.handleIdImageModalOpen(evt, user.idUrl)} style={{ border: 0, outline: 0, background: 'none' }}>
+                            <img
+                              width={75}
+                              role='presentation'
+                              src={user.idUrl}
+                              style={{ cursor: 'pointer' }}
+                            />
+                          </button>
+                        </TableRowColumn>
                         <TableRowColumn colSpan='4'>{user.e}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>{user.n}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{user.n}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{user.p}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{`${rATime}`}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{`${cTime}`}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>
+                        <TableRowColumn colSpan='4'>
                           <Link to={`/runner/${user.id}`}>
-                            <RaisedButton label='Details' primary />
+                            <RaisedButton
+                              label='Details'
+                              primary
+                              style={{
+                                margin: 5
+                              }}
+                            />
                           </Link>
+                          <br />
+                          <RaisedButton
+                            label='Approve'
+                            backgroundColor='#a4c639'
+                            labelColor='#FFFFFF'
+                            style={{
+                              margin: 5
+                            }}
+                            onClick={(evt) => { this.handleApproveRunner(evt, user.id, true); }}
+                          />
                           <RaisedButton
                             label='Disapprove'
                             secondary
@@ -195,7 +245,28 @@ export default class RunnerList extends React.Component {
                   })}
                 </TableBody>
               </Table></div>
+
           </Paper>
+          <Dialog
+            title='Identification'
+            actions={idImageModalActions}
+            modal
+            open={this.state.idImageModalOpen}
+            contentStyle={{ width: 500 }}
+            onRequestClose={this.idImageModalClose}
+          >
+            <Paper zDepth={0}>
+              <img
+                width={400}
+                role='presentation'
+                src={this.state.idUrl}
+                style={{
+                  cursor: 'pointer',
+                  margin: 20
+                }}
+              />
+            </Paper>
+          </Dialog>
         </div>
       </div>
     );

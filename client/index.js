@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import injectTapEventPlugin from 'react-tap-event-plugin';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import { AppContainer } from 'react-hot-loader';
+import LoadingComponent from './routes/LoadingComponent';
 import '../node_modules/react-mdl/extra/material';
 import Root from './root';
 
@@ -14,14 +15,25 @@ const rootNode = document.createElement('div');
 document.body.appendChild(rootNode);
 
 const render = (Component) => {
+  console.log('app rendering!');
   ReactDOM.render(
     <AppContainer >
       <MuiThemeProvider>
-        <Component />
+        <LoadingComponent />
       </MuiThemeProvider>
     </AppContainer>,
     rootNode
   );
+  setTimeout(() => {
+    ReactDOM.render(
+      <AppContainer >
+        <MuiThemeProvider>
+          <Component />
+        </MuiThemeProvider>
+      </AppContainer>,
+      rootNode
+    );
+  }, 1000);
 };
 
 render(Root);

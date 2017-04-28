@@ -11,6 +11,7 @@ import UserDetailComponent from '../components/User/UserDetailComponent';
 
 import RunnerMainComponent from '../components/Runner/RunnerMain';
 import RunnerListComponent from '../components/Runner/RunnerList';
+import RunnerJudgeListComponent from '../components/Runner/RunnerJudgeList';
 
 import OrderMainComponent from '../components/Order/OrderMain';
 import OrderListComponent from '../components/Order/OrderList';
@@ -40,7 +41,9 @@ export default (
 
     <Route path='/runner' component={RunnerMainComponent} onEnter={checkAuthRoute}>
       <IndexRoute component={RunnerListComponent} />
-      <Route path='list' component={RunnerListComponent} />
+      <Route path='/runner/list' component={RunnerListComponent} />
+      <Route path='/runner/judge' component={RunnerJudgeListComponent} />
+      <Route path='/runner/:id' component={UserDetailComponent} />
       <Redirect from='*' to='/runner' />
     </Route>
 
