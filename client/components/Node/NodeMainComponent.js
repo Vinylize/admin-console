@@ -19,7 +19,7 @@ export default class NodeMain extends React.Component {
         <Layout fixedDrawer>
           <Drawer title='Node' style={{ paddingTop: 65 }}>
             <Navigation>
-              <Link to='/node/list'>List of Node</Link>
+              <Link to='/node/list'>List of Nodes</Link>
             </Navigation>
           </Drawer>
           <Content style={{ marginTop: 65, padding: 20, backgroundColor: '#EEEEEE' }}>{this.props.children}</Content>

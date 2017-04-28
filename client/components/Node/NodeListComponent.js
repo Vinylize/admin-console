@@ -259,7 +259,7 @@ export default class NodeList extends React.Component {
         <div style={{ width: '100%', margin: 'auto' }}>
           <Paper>
             <div style={{ display: 'flex', height: 150, flexDirection: 'row', paddingLeft: 30, paddingRight: 40, alignItems: 'center' }} >
-              <h3>List of Node</h3>
+              <h3>List of Nodes</h3>
               <div style={{ display: 'flex', height: 56, flex: 1, justifyContent: 'flex-end', }}>
                 <FloatingActionButton onClick={this.handleCreateNodeFromBulkModalOpen}>
                   <ActionNoteAdd name='addBulk' />
