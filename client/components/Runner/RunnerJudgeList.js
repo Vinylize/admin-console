@@ -119,7 +119,7 @@ export default class RunnerJudgeList extends React.Component {
         <div style={{ width: '100%', margin: 'auto' }}>
           <Paper>
             <div style={{ display: 'flex', height: 150, flexDirection: 'row', paddingLeft: 30, paddingRight: 40, alignItems: 'center' }} >
-              <h3>List of user waiting for judge</h3>
+              <h3>List of User Waiting for Judge</h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
