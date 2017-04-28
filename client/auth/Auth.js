@@ -1,12 +1,11 @@
 import firebase from 'firebase';
 import client from '../util/lokka';
+import { refs } from '../util/firebase';
 
 const checkAuth = () => firebase.auth().currentUser;
 
 const checkAuthRoute = (nextState, transition) => {
   if (!checkAuth()) {
-    console.log('no login info');
-    console.log(nextState.location.pathname);
     if (nextState.location.pathname !== '/login') {
       transition({
         pathname: '/login',
@@ -18,7 +17,15 @@ const checkAuthRoute = (nextState, transition) => {
 
 const getAuth = (email, password) => new Promise((resolve, reject) => {
   firebase.auth().signInWithEmailAndPassword(email, password)
-  .then((result) => {
+  .then((user) => {
+    const uid = user.uid;
+    return refs.user.root.child(uid).once('value')
+      .then((snap) => {
+        if (snap.child('permission').val() === 'admin') return resolve();
+        return firebase.auth().signOut().then(() => reject('You are not authorized'));
+      });
+  })
+  .then(() =>
     firebase.auth().getToken()
       .then((token) => {
         /* eslint-disable no-underscore-dangle */
@@ -26,9 +33,9 @@ const getAuth = (email, password) => new Promise((resolve, reject) => {
           authorization: token.accessToken,
         };
         /* eslint-enable no-underscore-dangle */
-        resolve(result);
-      });
-  })
+        return resolve();
+      })
+  )
   .catch((error) => {
     reject(error);
   });
