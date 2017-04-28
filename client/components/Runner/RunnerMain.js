@@ -20,11 +20,11 @@ export default class RunnerMain extends React.Component {
           <Drawer title='Runner' style={{ paddingTop: 65 }}>
             <Navigation>
               <Link to='/runner/list'>List of Runner</Link>
-              <Link to='/runner/list'>1st Judge</Link>
+              <Link to='/runner/judge'>1st Judge</Link>
               <Link to='/runner/list'>2nd Judge</Link>
             </Navigation>
           </Drawer>
-          <Content style={{ paddingTop: 65 }}>{this.props.children}</Content>
+          <Content style={{ marginTop: 65, padding: 20, backgroundColor: '#EEEEEE' }}>{this.props.children}</Content>
         </Layout>
       </div>
     );
