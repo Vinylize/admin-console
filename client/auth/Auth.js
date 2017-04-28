@@ -22,7 +22,7 @@ const getAuth = (email, password) => new Promise((resolve, reject) => {
     return refs.user.root.child(uid).once('value')
       .then((snap) => {
         if (snap.child('permission').val() === 'admin') return resolve();
-        return reject('You are not authorized');
+        return firebase.auth().signOut().then(() => reject('You are not authorized'));
       });
   })
   .then(() =>

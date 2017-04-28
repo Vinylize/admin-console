@@ -39,7 +39,7 @@ class UserList extends React.Component {
   }
 
   componentDidMount() {
-    this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
+    this.userRootChildAdded = refs.user.root.orderByChild('permission').equalTo(null).on('child_added', (data) => {
       this.setState({ users: this.state.users.concat(data.val()) });
     });
   }
