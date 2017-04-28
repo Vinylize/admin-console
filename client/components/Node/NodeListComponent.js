@@ -30,7 +30,10 @@ import {
   refs,
 } from '../../util/firebase';
 
-import client from '../../util/lokka';
+import {
+  client,
+  clientInit
+} from '../../util/lokka';
 
 
 export default class NodeList extends React.Component {
@@ -52,7 +55,8 @@ export default class NodeList extends React.Component {
   }
 
   componentDidMount() {
-    this.initList();
+    clientInit()
+    .then(() => { this.initList(); });
   }
 
   componentWillUnmount() {

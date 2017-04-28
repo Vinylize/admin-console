@@ -59,9 +59,9 @@ export default class RunnerList extends React.Component {
     this.setState({ createUserModalOpen: false });
   };
 
-  handleApproveRunner = (evt, uid, approve) => {
+  handleApproveRunner = (evt, uid) => {
     evt.preventDefault();
-    const url = approve ? `${uploadBaseUrl}mutation{adminApproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminDisapproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}`;
+    const url = `${uploadBaseUrl}mutation{adminDisapproveRunner(input:{uid:"${uid}"}){result}}`;
     console.log(url);
     return firebase.auth().getToken()
       .then(token => fetch(url,
