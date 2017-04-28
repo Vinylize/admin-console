@@ -12,6 +12,10 @@ const checkAuthRoute = (nextState, transition) => {
         state: nextState.location.pathname
       });
     }
+  } else if (nextState.location.pathname === '/login') {
+    transition({
+      pathname: '/'
+    });
   }
 };
 
