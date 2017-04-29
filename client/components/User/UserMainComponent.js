@@ -19,7 +19,7 @@ export default class UserMain extends React.Component {
         <Layout fixedDrawer>
           <Drawer title='User' style={{ paddingTop: 65 }}>
             <Navigation>
-              <Link to='/user/list'>List of User</Link>
+              <Link to='/user/list'>List of Users</Link>
               {/* <Link to='/user/'>{this.props.viewer.id}</Link>*/}
             </Navigation>
           </Drawer>

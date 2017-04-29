@@ -19,7 +19,7 @@ export default class RunnerMain extends React.Component {
         <Layout fixedDrawer>
           <Drawer title='Runner' style={{ paddingTop: 65 }}>
             <Navigation>
-              <Link to='/runner/list'>List of Runner</Link>
+              <Link to='/runner/list'>List of Runners</Link>
               <Link to='/runner/judge'>1st Judge</Link>
               <Link to='/runner/list'>2nd Judge</Link>
             </Navigation>

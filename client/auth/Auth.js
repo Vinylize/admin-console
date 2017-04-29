@@ -6,12 +6,16 @@ const checkAuth = () => firebase.auth().currentUser;
 
 const checkAuthRoute = (nextState, transition) => {
   if (!checkAuth()) {
-    if (nextState.location.pathname !== '/login') {
+    if (nextState.location.pathname.toLocaleLowerCase() !== '/login') {
       transition({
         pathname: '/login',
         state: nextState.location.pathname
       });
     }
+  } else if (nextState.location.pathname.toLocaleLowerCase() === '/login') {
+    transition({
+      pathname: '/'
+    });
   }
 };
 
