@@ -47,11 +47,35 @@ export default class RunnerJudgeList extends React.Component {
       this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
         if (data.child('isWJ').val() === true) this.setState({ users: this.state.users.concat(data.val()) });
       });
+      this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (data) => {
+        let isIn = false;
+        if (data.child('isWJ').val() === true) {
+          this.setState({
+            users: this.state.users.map((user) => {
+              if (data.child('id').val() === user.id) {
+                isIn = true;
+                return data.val();
+              }
+              return user;
+            })
+          }, () => {
+            if (!isIn) this.setState({ users: this.state.users.concat(data.val()) });
+          });
+        } else {
+          this.setState({
+            users: this.state.users.filter((user) => {
+              if (data.child('id').val() === user.id) return false;
+              return true;
+            })
+          });
+        }
+      });
     }, 100);
   }
 
   componentWillUnmount() {
     refs.user.root.off('child_added', this.userRootChildAdded);
+    refs.user.root.off('child_changed', this.userRootChildChanged);
   }
 
   onSearchQueryChange(evt) {
