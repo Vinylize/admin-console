@@ -31,7 +31,8 @@ export default class RunnerList extends React.Component {
       createUserModalOpen: false,
       tempUsers: [],
       users: [],
-      isRendering: true,
+      selectedKey: 0,
+      isSelected: false,
       isSearching: false,
     };
   }
@@ -62,6 +63,7 @@ export default class RunnerList extends React.Component {
       });
     });
     this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (data) => {
+      this.setState({ isSelected: false });
       if (data.child('isRA').val() === true) {
         let isIn = false;
         this.setState({
@@ -81,6 +83,8 @@ export default class RunnerList extends React.Component {
             if (data.child('id').val() === user.id) return false;
             return true;
           })
+        }, () => {
+          if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
         });
       }
     });

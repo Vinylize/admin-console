@@ -72,6 +72,7 @@ class UserList extends React.Component {
       });
     });
     this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (data) => {
+      this.setState({ isSelected: false });
       if (data.child('permission').val() !== 'admin') {
         let isIn = false;
         this.setState({
@@ -88,9 +89,13 @@ class UserList extends React.Component {
       } else {
         this.setState({
           users: this.state.users.filter((user) => {
-            if (data.child('id').val() === user.id) return false;
+            if (data.child('id').val() === user.id) {
+              return false;
+            }
             return true;
           })
+        }, () => {
+          if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
         });
       }
     });

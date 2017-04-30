@@ -19,7 +19,7 @@ import {
 
 import { refs } from '../../util/firebase';
 
-class UserList extends React.Component {
+class OrderList extends React.Component {
   // static propTypes = {
   //   viewer: React.PropTypes.object.isRequired
   // };
@@ -97,10 +97,6 @@ class UserList extends React.Component {
             <div style={{ display: 'flex', height: 150, flexDirection: 'row', paddingLeft: 30, paddingRight: 40, alignItems: 'center' }} >
               <h3>List of Orders</h3>
             </div>
-            {/* <i style={{ paddingLeft: 31 }} >Action for selected user...</i>*/}
-            {/* <i style={{ paddingLeft: 31 }} >{this.props.viewer.users}</i>*/}
-
-
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
                 <RaisedButton
@@ -155,13 +151,14 @@ class UserList extends React.Component {
               >
                 <TableHeader>
                   <TableRow>
-                    <TableHeaderColumn colSpan='3'>Orderer</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Runner</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>Orderer</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>Runner</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>Node</TableHeaderColumn>
                     <TableHeaderColumn colSpan='2'>EDP</TableHeaderColumn>
                     <TableHeaderColumn colSpan='2'>Total Price</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>State</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Action</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>Currency</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>Action</TableHeaderColumn>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -169,13 +166,14 @@ class UserList extends React.Component {
                     const time = moment(order.cAt).calendar();
                     return (
                       <TableRow key={order.id}>
-                        <TableRowColumn colSpan='3'>{refs.user.root.child(order.oId).name}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{order.rId ? refs.user.root.child(order.rId).name : ''}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{refs.node.root.child(order.nId).name}</TableRowColumn>
+                        <TableRowColumn colSpan='2'>{order.oId}</TableRowColumn>
+                        <TableRowColumn colSpan='2'>{order.rId}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{order.nId}</TableRowColumn>
                         <TableRowColumn colSpan='2'>{order.eDP}</TableRowColumn>
                         <TableRowColumn colSpan='2'>{order.tP}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>{time}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>
+                        <TableRowColumn colSpan='2'>{order.curr}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{time}</TableRowColumn>
+                        <TableRowColumn colSpan='2'>
                           <Link to={`/order/${order.id}`}>
                             <RaisedButton label='Details' primary />
                           </Link>
@@ -192,4 +190,4 @@ class UserList extends React.Component {
   }
 }
 
-export default UserList;
+export default OrderList;
