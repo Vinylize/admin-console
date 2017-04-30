@@ -43,55 +43,53 @@ export default class RunnerJudgeList extends React.Component {
   }
 
   componentDidMount() {
-    setTimeout(() => {
-      refs.user.root.once('value', (data) => {
-        this.setState({ tempUsers: Object.keys(data.val()).map(key => data.val()[key])
-          .filter((user) => {
-            if (user.isWJ === true) return true;
-            return false;
-          })
-        }, () => {
-          this.setState({ users: this.state.tempUsers }, () => {
-            this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
-              if (user.child('isWJ').val() === true) {
-                let isIn = false;
-                const len = this.state.users.length;
-                for (let i = 0; i < len; ++i) {
-                  if (this.state.users[i].id === user.val().id) {
-                    isIn = true;
-                    break;
-                  }
+    refs.user.root.once('value', (data) => {
+      this.setState({ tempUsers: Object.keys(data.val()).map(key => data.val()[key])
+        .filter((user) => {
+          if (user.isWJ === true) return true;
+          return false;
+        })
+      }, () => {
+        this.setState({ users: this.state.tempUsers }, () => {
+          this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
+            if (user.child('isWJ').val() === true) {
+              let isIn = false;
+              const len = this.state.users.length;
+              for (let i = 0; i < len; ++i) {
+                if (this.state.users[i].id === user.val().id) {
+                  isIn = true;
+                  break;
                 }
-                if (!isIn) this.setState({ users: this.state.users.concat(user.val()) });
               }
-            });
+              if (!isIn) this.setState({ users: this.state.users.concat(user.val()) });
+            }
           });
         });
       });
-      this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (data) => {
+    });
+    this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (data) => {
+      if (data.child('isWJ').val() === true) {
         let isIn = false;
-        if (data.child('isWJ').val() === true) {
-          this.setState({
-            users: this.state.users.map((user) => {
-              if (data.child('id').val() === user.id) {
-                isIn = true;
-                return data.val();
-              }
-              return user;
-            })
-          }, () => {
-            if (!isIn) this.setState({ users: this.state.users.concat(data.val()) });
-          });
-        } else {
-          this.setState({
-            users: this.state.users.filter((user) => {
-              if (data.child('id').val() === user.id) return false;
-              return true;
-            })
-          });
-        }
-      });
-    }, 100);
+        this.setState({
+          users: this.state.users.map((user) => {
+            if (data.child('id').val() === user.id) {
+              isIn = true;
+              return data.val();
+            }
+            return user;
+          })
+        }, () => {
+          if (!isIn) this.setState({ users: this.state.users.concat(data.val()) });
+        });
+      } else {
+        this.setState({
+          users: this.state.users.filter((user) => {
+            if (data.child('id').val() === user.id) return false;
+            return true;
+          })
+        });
+      }
+    });
   }
 
   componentWillUnmount() {
