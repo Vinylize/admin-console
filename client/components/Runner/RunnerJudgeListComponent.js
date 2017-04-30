@@ -100,15 +100,15 @@ export default class RunnerJudgeList extends React.Component {
     refs.user.root.off('child_changed', this.userRootChildChanged);
   }
 
-  onSearchQueryChange(evt) {
+  onSearchQueryChange(e) {
     this.setState({ isSearching: true });
     setTimeout(() => {
       this.setState({ isSearching: false });
     }, 4000);
-    console.log(evt.target.value);
+    console.log(e.target.value);
   }
 
-  handleIdImageModalOpen = (evt, idUrl) => {
+  handleIdImageModalOpen = (e, idUrl) => {
     this.setState({ idImageModalOpen: true });
     this.setState({ idUrl });
   };
@@ -118,8 +118,8 @@ export default class RunnerJudgeList extends React.Component {
     this.setState({ idUrl: '' });
   };
 
-  handleApproveRunner = (evt, uid, isA) => {
-    evt.preventDefault();
+  handleApproveRunner = (e, uid, isA) => {
+    e.preventDefault();
     this.setState({ isSelected: false });
     const url = isA ? `${uploadBaseUrl}mutation{adminApproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminDisapproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}`;
     console.log(url);
@@ -151,8 +151,8 @@ export default class RunnerJudgeList extends React.Component {
       .catch();
   }
 
-  handleBlockUser = (evt, uid, isB) => {
-    evt.preventDefault();
+  handleBlockUser = (e, uid, isB) => {
+    e.preventDefault();
     this.setState({ isSelected: false });
     const url = isB ? `${uploadBaseUrl}mutation{adminUnblockUser(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminBlockUser(input:{uid:"${uid}"}){result}}`;
     return firebase.auth().getToken()
@@ -237,7 +237,7 @@ export default class RunnerJudgeList extends React.Component {
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(evt) => { this.handleBlockUser(evt, this.state.users[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleBlockUser(e, this.state.users[this.state.selectedKey].id, false); }}
                 />
                 <RaisedButton
                   label='Unblock'
@@ -246,7 +246,7 @@ export default class RunnerJudgeList extends React.Component {
                   style={{
                     margin: 12,
                   }}
-                  onClick={(evt) => { this.handleBlockUser(evt, this.state.users[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleBlockUser(e, this.state.users[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='APPROVE'
@@ -257,7 +257,7 @@ export default class RunnerJudgeList extends React.Component {
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(evt) => { this.handleApproveRunner(evt, this.state.users[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleApproveRunner(e, this.state.users[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='DISAPPROVE'
@@ -266,7 +266,7 @@ export default class RunnerJudgeList extends React.Component {
                   style={{
                     margin: 12
                   }}
-                  onClick={(evt) => { this.handleApproveRunner(evt, this.state.users[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleApproveRunner(e, this.state.users[this.state.selectedKey].id, false); }}
                 />
               </div>
               <div
@@ -313,7 +313,7 @@ export default class RunnerJudgeList extends React.Component {
                     return (
                       <TableRow key={user.id} onClick={this.handleRowSelection} selected={this.state.setSel}>
                         <TableRowColumn colSpan='2'>
-                          <button onClick={({ evt }) => this.handleIdImageModalOpen(evt, user.idUrl)} style={{ border: 0, outline: 0, background: 'none' }}>
+                          <button onClick={({ e }) => this.handleIdImageModalOpen(e, user.idUrl)} style={{ border: 0, outline: 0, background: 'none' }}>
                             <img
                               width={75}
                               role='presentation'
