@@ -32,6 +32,8 @@ export default class RunnerJudgeList extends React.Component {
     this.state = {
       idImageModalOpen: false,
       users: [],
+      selectedKey: 0,
+      isSelected: false,
       isSearching: false,
       idImageUrl: '',
     };
@@ -41,9 +43,11 @@ export default class RunnerJudgeList extends React.Component {
   }
 
   componentDidMount() {
-    this.userRootChildAdded = refs.user.root.orderByChild('isWJ').equalTo(true).on('child_added', (data) => {
-      this.setState({ users: this.state.users.concat(data.val()) });
-    });
+    setTimeout(() => {
+      this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
+        if (data.child('isWJ').val() === true) this.setState({ users: this.state.users.concat(data.val()) });
+      });
+    }, 100);
   }
 
   componentWillUnmount() {
@@ -68,9 +72,10 @@ export default class RunnerJudgeList extends React.Component {
     this.setState({ idUrl: '' });
   };
 
-  handleApproveRunner = (evt, uid, approve) => {
+  handleApproveRunner = (evt, uid, isA) => {
     evt.preventDefault();
-    const url = approve ? `${uploadBaseUrl}mutation{adminApproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminDisapproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}`;
+    this.setState({ isSelected: false });
+    const url = isA ? `${uploadBaseUrl}mutation{adminApproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminDisapproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}`;
     console.log(url);
     return firebase.auth().getToken()
       .then(token => fetch(url,
@@ -87,15 +92,63 @@ export default class RunnerJudgeList extends React.Component {
           alert(response.errors[0].message);
           return;
         }
-        console.log(response.data);
+        if (isA) alert('The user is approved!');
+        else alert('The user is disapproved!');
         setTimeout(() => {
           this.setState({ users: [] });
-          this.userRootChildAdded = refs.user.root.orderByChild('isWJ').equalTo(true).on('child_added', (data) => {
-            if (data.val()) this.setState({ users: this.state.users.concat(data.val()) });
+          this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
+            if (data.child('isWJ').val() === true) this.setState({ users: this.state.users.concat(data.val()) });
           });
-        }, 200);
+          if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
+        }, 100);
       })
       .catch();
+  }
+
+  handleBlockUser = (evt, uid, isB) => {
+    evt.preventDefault();
+    this.setState({ isSelected: false });
+    const url = isB ? `${uploadBaseUrl}mutation{adminUnblockUser(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminBlockUser(input:{uid:"${uid}"}){result}}`;
+    return firebase.auth().getToken()
+      .then(token => fetch(url,
+        {
+          method: 'POST',
+          headers: {
+            authorization: token.accessToken
+          }
+        }))
+      .then(response => response.json())
+      .then((response) => {
+        if (response.errors) {
+          console.log(response.errors);
+          alert(response.errors[0].message);
+          return;
+        }
+        if (isB) alert('The user is unblocked!');
+        else alert('Ther user is blocked!');
+        setTimeout(() => {
+          this.setState({ users: [] });
+          this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
+            if (data.child('isWJ').val() === true) this.setState({ users: this.state.users.concat(data.val()) });
+          });
+          if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
+        }, 100);
+      })
+      .catch();
+  }
+
+  handleRowSelection = (keys) => {
+    this.setState({ selectedKey: 0 }, () => {
+      if (keys.length > 0) {
+        keys.map((key) => {
+          this.setState({ selectedKey: key });
+          return key;
+        });
+        this.setState({ isSelected: true });
+      } else if (keys.length === 0) {
+        this.setState({ isSelected: false });
+      }
+    });
   }
 
   renderSpinner() {
@@ -113,7 +166,6 @@ export default class RunnerJudgeList extends React.Component {
         onTouchTap={this.handleIdImageModalClose}
       />
     ];
-
     return (
       <div>
         <div style={{ width: '100%', margin: 'auto' }}>
@@ -124,8 +176,9 @@ export default class RunnerJudgeList extends React.Component {
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
                 <RaisedButton
-                  label='Detail'
-                  disabled
+                  label={this.state.isSelected && this.state.users.length > 0 ? (<Link to={`/runner/${this.state.users[this.state.selectedKey].id}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
+                  primary
+                  disabled={!this.state.isSelected}
                   style={{
                     margin: 12,
                   }}
@@ -133,30 +186,42 @@ export default class RunnerJudgeList extends React.Component {
                 <RaisedButton
                   label='Block'
                   secondary
-                  disabled
+                  disabled={!this.state.isSelected || this.state.users[this.state.selectedKey].isB}
                   style={{
                     margin: 12,
                     marginLeft: 50,
                   }}
+                  onClick={(evt) => { this.handleBlockUser(evt, this.state.users[this.state.selectedKey].id, false); }}
                 />
                 <RaisedButton
                   label='Unblock'
                   primary
-                  disabled
+                  disabled={!this.state.isSelected || !this.state.users[this.state.selectedKey].isB}
                   style={{
                     margin: 12,
                   }}
+                  onClick={(evt) => { this.handleBlockUser(evt, this.state.users[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='APPROVE'
-                  primary
-                  disabled
+                  disabled={!this.state.isSelected}
+                  backgroundColor='#a4c639'
+                  labelColor='#FFFFFF'
                   style={{
                     margin: 12,
                     marginLeft: 50,
                   }}
+                  onClick={(evt) => { this.handleApproveRunner(evt, this.state.users[this.state.selectedKey].id, true); }}
                 />
-
+                <RaisedButton
+                  label='DISAPPROVE'
+                  disabled={!this.state.isSelected}
+                  secondary
+                  style={{
+                    margin: 12
+                  }}
+                  onClick={(evt) => { this.handleApproveRunner(evt, this.state.users[this.state.selectedKey].id, false); }}
+                />
               </div>
               <div
                 style={{
@@ -181,22 +246,26 @@ export default class RunnerJudgeList extends React.Component {
               <Table
                 selectable
                 fixedHeader
+                onRowSelection={this.handleRowSelection}
               >
                 <TableHeader>
                   <TableRow>
                     <TableHeaderColumn colSpan='2'>Identification</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='4'>Email</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='3'>Email</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>Name</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>phoneNumber</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='4'>Action</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>State</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>Action</TableHeaderColumn>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody
+                  deselectOnClickaway={false}
+                >
                   {this.state.users.map((user) => {
                     const cTime = moment(user.cAt).calendar();
                     return (
-                      <TableRow key={user.id}>
+                      <TableRow key={user.id} onClick={this.handleRowSelection} selected={this.state.setSel}>
                         <TableRowColumn colSpan='2'>
                           <button onClick={({ evt }) => this.handleIdImageModalOpen(evt, user.idUrl)} style={{ border: 0, outline: 0, background: 'none' }}>
                             <img
@@ -207,11 +276,12 @@ export default class RunnerJudgeList extends React.Component {
                             />
                           </button>
                         </TableRowColumn>
-                        <TableRowColumn colSpan='4'>{user.e}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{user.e}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{user.n}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{user.p}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{`${cTime}`}</TableRowColumn>
-                        <TableRowColumn colSpan='4'>
+                        <TableHeaderColumn colSpan='2'>{user.isB ? 'Blocked' : 'Unblocked'}</TableHeaderColumn>
+                        <TableRowColumn colSpan='2'>
                           <Link to={`/runner/${user.id}`}>
                             <RaisedButton
                               label='Details'
@@ -221,24 +291,6 @@ export default class RunnerJudgeList extends React.Component {
                               }}
                             />
                           </Link>
-                          <br />
-                          <RaisedButton
-                            label='Approve'
-                            backgroundColor='#a4c639'
-                            labelColor='#FFFFFF'
-                            style={{
-                              margin: 5
-                            }}
-                            onClick={(evt) => { this.handleApproveRunner(evt, user.id, true); }}
-                          />
-                          <RaisedButton
-                            label='Disapprove'
-                            secondary
-                            style={{
-                              margin: 5
-                            }}
-                            onClick={(evt) => { this.handleApproveRunner(evt, user.id, false); }}
-                          />
                         </TableRowColumn>
                       </TableRow>
                     );

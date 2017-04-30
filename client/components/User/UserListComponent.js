@@ -22,7 +22,12 @@ import {
   TableRowColumn
 } from 'material-ui/Table';
 
-import { refs } from '../../util/firebase';
+import {
+  refs,
+  firebase
+} from '../../util/firebase';
+
+const uploadBaseUrl = 'http://localhost:5002/graphql?query=';
 
 class UserList extends React.Component {
   // static propTypes = {
@@ -34,18 +39,22 @@ class UserList extends React.Component {
     this.state = {
       createUserModalOpen: false,
       users: [],
+      selectedKey: 0,
+      isSelected: false,
       isSearching: false,
     };
   }
 
   componentDidMount() {
-    this.userRootChildAdded = refs.user.root.orderByChild('permission').equalTo(null).on('child_added', (data) => {
-      this.setState({ users: this.state.users.concat(data.val()) });
-    });
+    setTimeout(() => {
+      this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
+        if (data.child('permission').val() === null) this.setState({ users: this.state.users.concat(data.val()) });
+      });
+    }, 100);
   }
 
   componentWillUnmount() {
-    refs.user.root.off('child_added', this.userRootChildAdded);
+    refs.user.root.orderByChild('permission').equalTo(null).off('child_added', this.userRootChildAdded);
   }
 
   onSearchQueryChange(evt) {
@@ -63,6 +72,51 @@ class UserList extends React.Component {
     this.setState({ createUserModalOpen: false });
   };
 
+  handleBlockUser = (evt, uid, isB) => {
+    evt.preventDefault();
+    this.setState({ isSelected: false });
+    const url = isB ? `${uploadBaseUrl}mutation{adminUnblockUser(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminBlockUser(input:{uid:"${uid}"}){result}}`;
+    return firebase.auth().getToken()
+      .then(token => fetch(url,
+        {
+          method: 'POST',
+          headers: {
+            authorization: token.accessToken
+          }
+        }))
+      .then(response => response.json())
+      .then((response) => {
+        if (response.errors) {
+          console.log(response.errors);
+          alert(response.errors[0].message);
+          return;
+        }
+        if (isB) alert('The user is unblocked!');
+        else alert('Ther user is blocked!');
+        setTimeout(() => {
+          this.setState({ users: [] });
+          this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
+            if (data.child('permission').val() === null) this.setState({ users: this.state.users.concat(data.val()) });
+          });
+          if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
+        }, 100);
+      })
+      .catch();
+  }
+
+  handleRowSelection = (keys) => {
+    this.setState({ selectedKey: 0 }, () => {
+      if (keys.length > 0) {
+        keys.map((key) => {
+          this.setState({ selectedKey: key });
+          return key;
+        });
+        this.setState({ isSelected: true });
+      } else if (keys.length === 0) {
+        this.setState({ isSelected: false });
+      }
+    });
+  }
 
   renderSpinner() {
     if (this.state.isSearching) {
@@ -84,7 +138,6 @@ class UserList extends React.Component {
         onTouchTap={this.handleCreateUserModalClose}
       />,
     ];
-
     return (
       <div>
         <div style={{ width: '100%', margin: 'auto' }}>
@@ -104,8 +157,9 @@ class UserList extends React.Component {
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
                 <RaisedButton
-                  label='Detail'
-                  disabled
+                  label={this.state.isSelected && this.state.users.length > 0 ? (<Link to={`/user/${this.state.users[this.state.selectedKey].id}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
+                  primary
+                  disabled={!this.state.isSelected}
                   style={{
                     margin: 12,
                   }}
@@ -113,18 +167,38 @@ class UserList extends React.Component {
                 <RaisedButton
                   label='Block'
                   secondary
+                  disabled={!this.state.isSelected || this.state.users[this.state.selectedKey].isB}
+                  style={{
+                    margin: 12,
+                    marginLeft: 50,
+                  }}
+                  onClick={(evt) => { this.handleBlockUser(evt, this.state.users[this.state.selectedKey].id, false); }}
+                />
+                <RaisedButton
+                  label='Unblock'
+                  primary
+                  disabled={!this.state.isSelected || !this.state.users[this.state.selectedKey].isB}
+                  style={{
+                    margin: 12,
+                  }}
+                  onClick={(evt) => { this.handleBlockUser(evt, this.state.users[this.state.selectedKey].id, true); }}
+                />
+                <RaisedButton
+                  label='APPROVE'
                   disabled
+                  backgroundColor='#a4c639'
+                  labelColor='#FFFFFF'
                   style={{
                     margin: 12,
                     marginLeft: 50,
                   }}
                 />
                 <RaisedButton
-                  label='Unblock'
-                  primary
+                  label='DISAPPROVE'
                   disabled
+                  secondary
                   style={{
-                    margin: 12,
+                    margin: 12
                   }}
                 />
 
@@ -152,32 +226,36 @@ class UserList extends React.Component {
               <Table
                 selectable
                 fixedHeader
+                onRowSelection={this.handleRowSelection}
               >
                 <TableHeader>
                   <TableRow>
-                    <TableHeaderColumn colSpan='4'>Email</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='3'>Email</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>Name</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>phoneNumber</TableHeaderColumn>
                     <TableHeaderColumn colSpan='2'>isPhoneValid</TableHeaderColumn>
                     <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Action</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>State</TableHeaderColumn>
+                    <TableHeaderColumn colSpan='2'>Action</TableHeaderColumn>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody
+                  deselectOnClickaway={false}
+                >
                   {this.state.users.map((user) => {
                     const time = moment(user.cAt).calendar();
                     return (
                       <TableRow key={user.id}>
-                        <TableRowColumn colSpan='4'>{user.e}</TableRowColumn>
+                        <TableRowColumn colSpan='3'>{user.e}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{user.n}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{user.p}</TableRowColumn>
                         <TableRowColumn colSpan='2'>{user.isPV ? 'YES' : 'NO'}</TableRowColumn>
                         <TableRowColumn colSpan='3'>{`${time}`}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>
+                        <TableHeaderColumn colSpan='2'>{user.isB ? 'Blocked' : 'Unblocked'}</TableHeaderColumn>
+                        <TableRowColumn colSpan='2'>
                           <Link to={`/user/${user.id}`}>
                             <RaisedButton label='Details' primary />
                           </Link>
-                          {/* </RaisedButton>*/}
                         </TableRowColumn>
                       </TableRow>
                     );
