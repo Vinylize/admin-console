@@ -38,6 +38,7 @@ class UserList extends React.Component {
     super(props);
     this.state = {
       createUserModalOpen: false,
+      tempUsers: [],
       users: [],
       selectedKey: 0,
       isSelected: false,
@@ -47,12 +48,33 @@ class UserList extends React.Component {
 
   componentDidMount() {
     setTimeout(() => {
-      this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
-        if (data.child('permission').val() === null) this.setState({ users: this.state.users.concat(data.val()) });
+      refs.user.root.once('value', (data) => {
+        this.setState({ tempUsers: Object.keys(data.val()).map(key => data.val()[key])
+          .filter((user) => {
+            if (user.permission !== 'admin') return true;
+            return false;
+          })
+        }, () => {
+          this.setState({ users: this.state.tempUsers }, () => {
+            this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
+              if (user.child('permission').val() !== 'admin') {
+                let isIn = false;
+                const len = this.state.users.length;
+                for (let i = 0; i < len; ++i) {
+                  if (this.state.users[i].id === user.val().id) {
+                    isIn = true;
+                    break;
+                  }
+                }
+                if (!isIn) this.setState({ users: this.state.users.concat(user.val()) });
+              }
+            });
+          });
+        });
       });
       this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (data) => {
         let isIn = false;
-        if (data.child('permission').val() === null) {
+        if (data.child('permission').val() !== 'admin') {
           this.setState({
             users: this.state.users.map((user) => {
               if (data.child('id').val() === user.id) {
@@ -81,12 +103,12 @@ class UserList extends React.Component {
     refs.user.root.off('child_changed', this.userRootChildChanged);
   }
 
-  onSearchQueryChange(evt) {
+  onSearchQueryChange(e) {
     this.setState({ isSearching: true });
     setTimeout(() => {
       this.setState({ isSearching: false });
     }, 4000);
-    console.log(evt.target.value);
+    console.log(e.target.value);
   }
   handleCreateUserModalOpen = () => {
     this.setState({ createUserModalOpen: true });
@@ -96,8 +118,8 @@ class UserList extends React.Component {
     this.setState({ createUserModalOpen: false });
   };
 
-  handleBlockUser = (evt, uid, isB) => {
-    evt.preventDefault();
+  handleBlockUser = (e, uid, isB) => {
+    e.preventDefault();
     this.setState({ isSelected: false });
     const url = isB ? `${uploadBaseUrl}mutation{adminUnblockUser(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminBlockUser(input:{uid:"${uid}"}){result}}`;
     return firebase.auth().getToken()
@@ -196,7 +218,7 @@ class UserList extends React.Component {
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(evt) => { this.handleBlockUser(evt, this.state.users[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleBlockUser(e, this.state.users[this.state.selectedKey].id, false); }}
                 />
                 <RaisedButton
                   label='Unblock'
@@ -205,7 +227,7 @@ class UserList extends React.Component {
                   style={{
                     margin: 12,
                   }}
-                  onClick={(evt) => { this.handleBlockUser(evt, this.state.users[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleBlockUser(e, this.state.users[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='APPROVE'

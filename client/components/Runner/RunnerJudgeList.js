@@ -44,8 +44,29 @@ export default class RunnerJudgeList extends React.Component {
 
   componentDidMount() {
     setTimeout(() => {
-      this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
-        if (data.child('isWJ').val() === true) this.setState({ users: this.state.users.concat(data.val()) });
+      refs.user.root.once('value', (data) => {
+        this.setState({ tempUsers: Object.keys(data.val()).map(key => data.val()[key])
+          .filter((user) => {
+            if (user.isWJ === true) return true;
+            return false;
+          })
+        }, () => {
+          this.setState({ users: this.state.tempUsers }, () => {
+            this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
+              if (user.child('isWJ').val() === true) {
+                let isIn = false;
+                const len = this.state.users.length;
+                for (let i = 0; i < len; ++i) {
+                  if (this.state.users[i].id === user.val().id) {
+                    isIn = true;
+                    break;
+                  }
+                }
+                if (!isIn) this.setState({ users: this.state.users.concat(user.val()) });
+              }
+            });
+          });
+        });
       });
       this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (data) => {
         let isIn = false;
@@ -70,7 +91,6 @@ export default class RunnerJudgeList extends React.Component {
           });
         }
       });
-
     }, 100);
   }
 
