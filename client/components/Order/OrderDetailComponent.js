@@ -96,11 +96,23 @@ export default class OrderDetail extends React.Component {
                     this.state.orderProperties[orderPropertiesKey]
                       .map((item, key1) =>
                         Object.keys(item)
-                          .map(key2 => (
-                            <h6 key={`${orderPropertiesKey}-${key1}-${key2}`}>
-                              {`${key2} : ${item[key2]}`}
-                            </h6>
-                          ))
+                          .map((key2, i) => {
+                            if (i === 0) {
+                              return (
+                                <div>
+                                  <h5>{`ITEM ${i + 1}`}</h5>
+                                  <h6 key={`${orderPropertiesKey}-${key1}-${key2}`}>
+                                    {`${key2} : ${item[key2]}`}
+                                  </h6>
+                                </div>
+                              );
+                            }
+                            return (
+                              <h6 key={`${orderPropertiesKey}-${key1}-${key2}`}>
+                                {`${key2} : ${item[key2]}`}
+                              </h6>
+                            );
+                          })
                       )
                     : Object.keys(this.state.orderProperties[orderPropertiesKey])
                       .map(key => (
