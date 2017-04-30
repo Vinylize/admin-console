@@ -70,6 +70,7 @@ export default class RunnerJudgeList extends React.Component {
           });
         }
       });
+
     }, 100);
   }
 
