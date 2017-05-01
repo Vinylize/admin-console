@@ -28,7 +28,7 @@ import {
   refs,
 } from '../../util/firebase';
 
-const uploadBaseUrl = 'http://localhost:5002/graphql/upload?query=';
+const uploadBaseUrl = 'https://api.yetta.co/graphql/upload?query=';
 
 export default class NodeDetail extends React.Component {
   static propTypes = {

@@ -27,7 +27,7 @@ import {
   firebase
 } from '../../util/firebase';
 
-const uploadBaseUrl = 'http://localhost:5002/graphql?query=';
+const uploadBaseUrl = 'https://api.yetta.co/graphql?query=';
 
 class UserList extends React.Component {
   // static propTypes = {
