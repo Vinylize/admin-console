@@ -67,7 +67,6 @@ class UserList extends React.Component {
             if (user.child('permission').val() !== 'admin' && !isIn) this.setState({ users: this.state.users.concat(user.val()) });
           });
           this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (user) => {
-            this.setState({ isSelected: false });
             if (user.child('permission').val() !== 'admin') {
               let isIn = false;
               this.setState({
@@ -89,8 +88,6 @@ class UserList extends React.Component {
                   }
                   return true;
                 })
-              }, () => {
-                if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
               });
             }
           });

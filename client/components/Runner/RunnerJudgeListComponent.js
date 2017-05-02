@@ -62,7 +62,6 @@ export default class RunnerJudgeList extends React.Component {
             if (user.child('isWJ').val() === true && !isIn) this.setState({ users: this.state.users.concat(user.val()) });
           });
           this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (user) => {
-            this.setState({ isSelected: false });
             if (user.child('isWJ').val() === true) {
               let isIn = false;
               this.setState({
@@ -82,8 +81,6 @@ export default class RunnerJudgeList extends React.Component {
                   if (user.child('id').val() === u.id) return false;
                   return true;
                 })
-              }, () => {
-                if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
               });
             }
           });
