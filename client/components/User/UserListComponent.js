@@ -41,11 +41,11 @@ class UserList extends React.Component {
       sortOrder: 'asc',
       headers: [
         { name: 'Email', value: 'e', size: 3 },
-        { name: 'Name', value: 'n', size: 3 },
+        { name: 'Name', value: 'n', size: 2 },
         { name: 'phoneNumber', value: 'p', size: 3 },
         { name: 'isPhoneValid', value: 'isPV', size: 2 },
         { name: 'CreatedAt', value: 'cAt', size: 3 },
-        { name: 'State', value: 'isB', size: 1 }
+        { name: 'State', value: 'isB', size: 2 }
       ]
     };
   }
