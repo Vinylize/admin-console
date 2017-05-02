@@ -22,7 +22,7 @@ import {
   refs
 } from '../../util/firebase';
 
-const uploadBaseUrl = 'http://127.0.0.1:5002/graphql?query=';
+const uploadBaseUrl = 'https://api.yetta.co/graphql?query=';
 
 export default class RunnerList extends React.Component {
   constructor(props) {
