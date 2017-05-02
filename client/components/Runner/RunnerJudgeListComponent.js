@@ -41,52 +41,79 @@ export default class RunnerJudgeList extends React.Component {
     this.handleIdImageModalClose = this.handleIdImageModalClose.bind(this);
     this.handleApproveRunner = this.handleApproveRunner.bind(this);
   }
-
   componentDidMount() {
-    setTimeout(() => {
-      this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
-        if (data.child('isWJ').val() === true) this.setState({ users: this.state.users.concat(data.val()) });
-      });
-      this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (data) => {
-        let isIn = false;
-        if (data.child('isWJ').val() === true) {
-          this.setState({
-            users: this.state.users.map((user) => {
-              if (data.child('id').val() === user.id) {
+    refs.user.root.once('value', (data) => {
+      this.setState({ tempUsers: Object.keys(data.val()).map(key => data.val()[key])
+        .filter((user) => {
+          if (user.isWJ === true && user.permission !== 'admin') return true;
+          return false;
+        })
+      }, () => {
+        this.setState({ users: this.state.tempUsers }, () => {
+          this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
+            let isIn = false;
+            const len = this.state.users.length;
+            for (let i = 0; i < len; ++i) {
+              if (this.state.users[i].id === user.val().id) {
                 isIn = true;
-                return data.val();
+                break;
               }
-              return user;
-            })
-          }, () => {
-            if (!isIn) this.setState({ users: this.state.users.concat(data.val()) });
+            }
+            if (user.child('isWJ').val() === true && user.child('permission').val() !== 'admin' && !isIn) this.setState({ users: this.state.users.concat(user.val()) });
           });
-        } else {
-          this.setState({
-            users: this.state.users.filter((user) => {
-              if (data.child('id').val() === user.id) return false;
-              return true;
-            })
+          this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (user) => {
+            if (user.child('isWJ').val() === true && user.child('permission').val() !== 'admin') {
+              let isIn = false;
+              this.setState({
+                users: this.state.users.map((u) => {
+                  if (user.child('id').val() === u.id) {
+                    isIn = true;
+                    return user.val();
+                  }
+                  return u;
+                })
+              }, () => {
+                if (!isIn) this.setState({ users: this.state.users.concat(user.val()) });
+              });
+            } else {
+              this.setState({
+                users: this.state.users.filter((u) => {
+                  if (user.child('id').val() === u.id) return false;
+                  return true;
+                })
+              });
+            }
           });
-        }
+          this.userRootChildRemoved = refs.user.root.orderByKey().on('child_removed', (user) => {
+            this.setState({
+              users: this.state.users.filter((u) => {
+                if (user.child('id').val() === u.id) {
+                  return false;
+                }
+                return true;
+              })
+            });
+          });
+        });
       });
-    }, 100);
+    });
   }
 
   componentWillUnmount() {
     refs.user.root.off('child_added', this.userRootChildAdded);
     refs.user.root.off('child_changed', this.userRootChildChanged);
+    refs.user.root.off('child_removed', this.userRootChildRemoved);
   }
 
-  onSearchQueryChange(evt) {
+  onSearchQueryChange(e) {
     this.setState({ isSearching: true });
     setTimeout(() => {
       this.setState({ isSearching: false });
     }, 4000);
-    console.log(evt.target.value);
+    console.log(e.target.value);
   }
 
-  handleIdImageModalOpen = (evt, idUrl) => {
+  handleIdImageModalOpen = (e, idUrl) => {
     this.setState({ idImageModalOpen: true });
     this.setState({ idUrl });
   };
@@ -96,8 +123,8 @@ export default class RunnerJudgeList extends React.Component {
     this.setState({ idUrl: '' });
   };
 
-  handleApproveRunner = (evt, uid, isA) => {
-    evt.preventDefault();
+  handleApproveRunner = (e, uid, isA) => {
+    e.preventDefault();
     this.setState({ isSelected: false });
     const url = isA ? `${uploadBaseUrl}mutation{adminApproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminDisapproveRunnerFirstJudge(input:{uid:"${uid}"}){result}}`;
     console.log(url);
@@ -129,8 +156,8 @@ export default class RunnerJudgeList extends React.Component {
       .catch();
   }
 
-  handleBlockUser = (evt, uid, isB) => {
-    evt.preventDefault();
+  handleBlockUser = (e, uid, isB) => {
+    e.preventDefault();
     this.setState({ isSelected: false });
     const url = isB ? `${uploadBaseUrl}mutation{adminUnblockUser(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminBlockUser(input:{uid:"${uid}"}){result}}`;
     return firebase.auth().getToken()
@@ -215,7 +242,7 @@ export default class RunnerJudgeList extends React.Component {
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(evt) => { this.handleBlockUser(evt, this.state.users[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleBlockUser(e, this.state.users[this.state.selectedKey].id, false); }}
                 />
                 <RaisedButton
                   label='Unblock'
@@ -224,7 +251,7 @@ export default class RunnerJudgeList extends React.Component {
                   style={{
                     margin: 12,
                   }}
-                  onClick={(evt) => { this.handleBlockUser(evt, this.state.users[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleBlockUser(e, this.state.users[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='APPROVE'
@@ -235,7 +262,7 @@ export default class RunnerJudgeList extends React.Component {
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(evt) => { this.handleApproveRunner(evt, this.state.users[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleApproveRunner(e, this.state.users[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='DISAPPROVE'
@@ -244,7 +271,7 @@ export default class RunnerJudgeList extends React.Component {
                   style={{
                     margin: 12
                   }}
-                  onClick={(evt) => { this.handleApproveRunner(evt, this.state.users[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleApproveRunner(e, this.state.users[this.state.selectedKey].id, false); }}
                 />
               </div>
               <div
@@ -291,7 +318,7 @@ export default class RunnerJudgeList extends React.Component {
                     return (
                       <TableRow key={user.id} onClick={this.handleRowSelection} selected={this.state.setSel}>
                         <TableRowColumn colSpan='2'>
-                          <button onClick={({ evt }) => this.handleIdImageModalOpen(evt, user.idUrl)} style={{ border: 0, outline: 0, background: 'none' }}>
+                          <button onClick={({ e }) => this.handleIdImageModalOpen(e, user.idUrl)} style={{ border: 0, outline: 0, background: 'none' }}>
                             <img
                               width={75}
                               role='presentation'
