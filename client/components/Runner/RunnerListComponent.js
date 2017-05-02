@@ -1,21 +1,11 @@
 import React from 'react';
-import moment from 'moment';
-
 import { Link } from 'react-router';
 
 import RaisedButton from 'material-ui/RaisedButton';
 import Paper from 'material-ui/Paper';
 import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
-
-import {
-  Table,
-  TableBody,
-  TableHeader,
-  TableHeaderColumn,
-  TableRow,
-  TableRowColumn
-} from 'material-ui/Table';
+import DataTable from '../Table/TableComponent';
 
 import {
   firebase,
@@ -34,6 +24,19 @@ export default class RunnerList extends React.Component {
       selectedKey: 0,
       isSelected: false,
       isSearching: false,
+      pDisplay: 15,
+      pCurrent: 1,
+      pTotal: 0,
+      sortBy: 'id',
+      sortOrder: 'asc',
+      headers: [
+        { name: 'Email', value: 'e', size: 3 },
+        { name: 'Name', value: 'n', size: 2 },
+        { name: 'phoneNumber', value: 'p', size: 2 },
+        { name: 'runnerApprovedAt', value: 'rAAt', size: 3 },
+        { name: 'CreatedAt', value: 'cAt', size: 3 },
+        { name: 'State', value: 'isB', size: 2 }
+      ]
     };
   }
 
@@ -46,6 +49,7 @@ export default class RunnerList extends React.Component {
         })
       }, () => {
         this.setState({ users: this.state.tempUsers }, () => {
+          this.handleSetTotalPage(this.state.users.length);
           this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
             let isIn = false;
             const len = this.state.users.length;
@@ -55,7 +59,11 @@ export default class RunnerList extends React.Component {
                 break;
               }
             }
-            if (user.child('isRA').val() === true && user.child('permission') !== 'admin' && !isIn) this.setState({ users: this.state.users.concat(user.val()) });
+            if (user.child('isRA').val() === true && user.child('permission') !== 'admin' && !isIn) {
+              this.setState({ users: this.state.users.concat(user.val()) }, () => {
+                this.handleSetTotalPage(this.state.users.length);
+              });
+            }
           });
           this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (user) => {
             if (user.child('isRA').val() === true && user.child('permission') !== 'admin') {
@@ -69,7 +77,11 @@ export default class RunnerList extends React.Component {
                   return u;
                 })
               }, () => {
-                if (!isIn) this.setState({ users: this.state.users.concat(user.val()) });
+                if (!isIn) {
+                  this.setState({ users: this.state.users.concat(user.val()) }, () => {
+                    this.handleSetTotalPage(this.state.users.length);
+                  });
+                }
               });
             } else {
               this.setState({
@@ -77,6 +89,8 @@ export default class RunnerList extends React.Component {
                   if (user.child('id').val() === u.id) return false;
                   return true;
                 })
+              }, () => {
+                this.handleSetTotalPage(this.state.users.length);
               });
             }
           });
@@ -88,6 +102,8 @@ export default class RunnerList extends React.Component {
                 }
                 return true;
               })
+            }, () => {
+              this.handleSetTotalPage(this.state.users.length);
             });
           });
         });
@@ -184,13 +200,44 @@ export default class RunnerList extends React.Component {
     this.setState({ selectedKey: 0 }, () => {
       if (keys.length > 0) {
         keys.map((key) => {
-          this.setState({ selectedKey: key });
+          this.setState({ selectedKey: key + ((this.state.pCurrent - 1) * this.state.pDisplay) });
           return key;
         });
         this.setState({ isSelected: true });
       } else if (keys.length === 0) {
         this.setState({ isSelected: false });
       }
+    });
+  }
+
+  handleSetPage = (pCurrent) => {
+    this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
+    if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
+  }
+
+  handleSetTotalPage = (itemLength) => {
+    const pTotal = Math.ceil(itemLength / this.state.pDisplay);
+    if (pTotal !== this.state.pTotal) this.setState({ pTotal });
+  }
+
+  handleSorting = (e, prop) => {
+    const sortOrder = this.state.sortOrder;
+    const sortBy = this.state.sortBy;
+    this.setState({
+      users: prop !== 'No' ? this.state.users.sort((a, b) => {
+        if (sortOrder === 'asc' || sortBy !== prop) {
+          if (a[prop] > b[prop]) return 1;
+          else if (a[prop] < b[prop]) return -1;
+          return 0;
+        }
+        if (a[prop] < b[prop]) return 1;
+        else if (a[prop] > b[prop]) return -1;
+        return 0;
+      }) : this.state.users.reverse()
+    }, () => {
+      const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
+      this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
+      this.setState({ sortBy: prop });
     });
   }
 
@@ -258,7 +305,6 @@ export default class RunnerList extends React.Component {
                   }}
                   onClick={(e) => { this.handleApproveRunner(e, this.state.users[this.state.selectedKey].id, false); }}
                 />
-
               </div>
               <div
                 style={{
@@ -279,47 +325,19 @@ export default class RunnerList extends React.Component {
 
               </div>
             </div>
-            <div style={{ float: 'clear' }} >
-              <Table
-                selectable
-                fixedHeader
-                onRowSelection={this.handleRowSelection}
-              >
-                <TableHeader>
-                  <TableRow>
-                    <TableHeaderColumn colSpan='3'>Email</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>Name</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>phoneNumber</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>runnerApprovedAt</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>State</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>Action</TableHeaderColumn>
-                  </TableRow>
-                </TableHeader>
-                <TableBody
-                  deselectOnClickaway={false}
-                >
-                  {this.state.users.map((user) => {
-                    const cTime = moment(user.cAt).calendar();
-                    const rATime = moment(user.rAAt).calendar();
-                    return (
-                      <TableRow key={user.id}>
-                        <TableRowColumn colSpan='3'>{user.e}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>{user.n}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{user.p}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{`${rATime}`}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{`${cTime}`}</TableRowColumn>
-                        <TableHeaderColumn colSpan='2'>{user.isB ? 'Blocked' : 'Unblocked'}</TableHeaderColumn>
-                        <TableRowColumn colSpan='2'>
-                          <Link to={`/runner/${user.id}`}>
-                            <RaisedButton label='Details' primary />
-                          </Link>
-                        </TableRowColumn>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table></div>
+            <DataTable
+              class='user'
+              items={this.state.users}
+              headers={this.state.headers}
+              pCurrent={this.state.pCurrent}
+              pDisplay={this.state.pDisplay}
+              pTotal={this.state.pTotal}
+              handleRowSelection={this.handleRowSelection}
+              handleSetPage={this.handleSetPage}
+              sortOrder={this.state.sortOrder}
+              sortBy={this.state.sortBy}
+              onClickSort={this.handleSorting}
+            />
           </Paper>
         </div>
       </div>

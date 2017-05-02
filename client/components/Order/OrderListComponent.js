@@ -1,21 +1,11 @@
 import React from 'react';
-import moment from 'moment';
-
-import { Link } from 'react-router';
 
 import RaisedButton from 'material-ui/RaisedButton';
 import Paper from 'material-ui/Paper';
 import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
 
-import {
-  Table,
-  TableBody,
-  TableHeader,
-  TableHeaderColumn,
-  TableRow,
-  TableRowColumn
-} from 'material-ui/Table';
+import DataTable from '../Table/TableComponent';
 
 import { refs } from '../../util/firebase';
 
@@ -29,7 +19,23 @@ class OrderList extends React.Component {
     this.state = {
       tempOrders: [],
       orders: [],
+      selectedKey: 0,
+      isSelected: false,
       isSearching: false,
+      pDisplay: 15,
+      pCurrent: 1,
+      pTotal: 0,
+      sortBy: 'id',
+      sortOrder: 'asc',
+      headers: [
+        { name: 'Orderer', value: 'oDd', size: 2 },
+        { name: 'Runner', value: 'rId', size: 2 },
+        { name: 'Node', value: 'nId', size: 3 },
+        { name: 'EDP', value: 'eDP', size: 2 },
+        { name: 'Total Price', value: 'tP', size: 2 },
+        { name: 'Currency', value: 'curr', size: 1 },
+        { name: 'createdAt', value: 'cAt', size: 3 }
+      ]
     };
   }
 
@@ -39,6 +45,7 @@ class OrderList extends React.Component {
         tempOrders: Object.keys(data.val()).map(key => data.val()[key])
       }, () => {
         this.setState({ orders: this.state.tempOrders }, () => {
+          this.handleSetTotalPage(this.state.orders.length);
           this.orderRootChildAdded = refs.order.root.orderByKey().on('child_added', (order) => {
             let isIn = false;
             const len = this.state.orders.length;
@@ -48,7 +55,11 @@ class OrderList extends React.Component {
                 break;
               }
             }
-            if (!isIn) this.setState({ orders: this.state.orders.concat(order.val()) });
+            if (!isIn) {
+              this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
+                this.handleSetTotalPage(this.state.orders.length);
+              });
+            }
           });
           this.orderRootChildChanged = refs.order.root.orderByKey().on('child_changed', (order) => {
             let isIn = false;
@@ -61,7 +72,11 @@ class OrderList extends React.Component {
                 return order;
               })
             }, () => {
-              if (!isIn) this.setState({ orders: this.state.orders.concat(order.val()) });
+              if (!isIn) {
+                this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
+                  this.handleSetTotalPage(this.state.orders.length);
+                });
+              }
             });
           });
           this.orderRootChildRemoved = refs.order.root.orderByKey().on('child_removed', (order) => {
@@ -72,6 +87,8 @@ class OrderList extends React.Component {
                 }
                 return true;
               })
+            }, () => {
+              this.handleSetTotalPage(this.state.orders.length);
             });
           });
         });
@@ -91,6 +108,51 @@ class OrderList extends React.Component {
       this.setState({ isSearching: false });
     }, 4000);
     console.log(e.target.value);
+  }
+
+  handleRowSelection = (keys) => {
+    this.setState({ selectedKey: 0 }, () => {
+      if (keys.length > 0) {
+        keys.map((key) => {
+          this.setState({ selectedKey: key + ((this.state.pCurrent - 1) * this.state.pDisplay) });
+          return key;
+        });
+        this.setState({ isSelected: true });
+      } else if (keys.length === 0) {
+        this.setState({ isSelected: false });
+      }
+    });
+  }
+
+  handleSetPage = (pCurrent) => {
+    this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
+    if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
+  }
+
+  handleSetTotalPage = (itemLength) => {
+    const pTotal = Math.ceil(itemLength / this.state.pDisplay);
+    if (pTotal !== this.state.pTotal) this.setState({ pTotal });
+  }
+
+  handleSorting = (e, prop) => {
+    const sortOrder = this.state.sortOrder;
+    const sortBy = this.state.sortBy;
+    this.setState({
+      orders: prop !== 'No' ? this.state.orders.sort((a, b) => {
+        if (sortOrder === 'asc' || sortBy !== prop) {
+          if (a[prop] > b[prop]) return 1;
+          else if (a[prop] < b[prop]) return -1;
+          return 0;
+        }
+        if (a[prop] < b[prop]) return 1;
+        else if (a[prop] > b[prop]) return -1;
+        return 0;
+      }) : this.state.orders.reverse()
+    }, () => {
+      const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
+      this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
+      this.setState({ sortBy: prop });
+    });
   }
 
   renderSpinner() {
@@ -155,47 +217,19 @@ class OrderList extends React.Component {
 
               </div>
             </div>
-            <div style={{ float: 'clear' }} >
-              <Table
-                selectable
-                fixedHeader
-              >
-                <TableHeader>
-                  <TableRow>
-                    <TableHeaderColumn colSpan='2'>Orderer</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>Runner</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Node</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>EDP</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>Total Price</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>Currency</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>Action</TableHeaderColumn>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {
-                    this.state.orders.map((order) => {
-                      const time = moment(order.cAt).calendar();
-                      return (
-                        <TableRow key={order.id}>
-                          <TableRowColumn colSpan='2'>{order.oId}</TableRowColumn>
-                          <TableRowColumn colSpan='2'>{order.rId}</TableRowColumn>
-                          <TableRowColumn colSpan='3'>{order.nId}</TableRowColumn>
-                          <TableRowColumn colSpan='2'>{order.eDP}</TableRowColumn>
-                          <TableRowColumn colSpan='2'>{order.tP}</TableRowColumn>
-                          <TableRowColumn colSpan='2'>{order.curr}</TableRowColumn>
-                          <TableRowColumn colSpan='3'>{time}</TableRowColumn>
-                          <TableRowColumn colSpan='2'>
-                            <Link to={`/order/${order.id}`}>
-                              <RaisedButton label='Details' primary />
-                            </Link>
-                          </TableRowColumn>
-                        </TableRow>
-                      );
-                    })
-                  }
-                </TableBody>
-              </Table></div>
+            <DataTable
+              class='order'
+              items={this.state.orders}
+              headers={this.state.headers}
+              pCurrent={this.state.pCurrent}
+              pDisplay={this.state.pDisplay}
+              pTotal={this.state.pTotal}
+              handleRowSelection={this.handleRowSelection}
+              handleSetPage={this.handleSetPage}
+              sortOrder={this.state.sortOrder}
+              sortBy={this.state.sortBy}
+              onClickSort={this.handleSorting}
+            />
           </Paper>
         </div>
       </div>

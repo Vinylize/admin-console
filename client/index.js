@@ -33,7 +33,7 @@ const render = (Component) => {
       </AppContainer>,
       rootNode
     );
-  }, 1000);
+  }, 2000);
 };
 
 render(Root);

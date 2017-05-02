@@ -1,6 +1,4 @@
 import React from 'react';
-import moment from 'moment';
-
 import { Link } from 'react-router';
 
 import FloatingActionButton from 'material-ui/FloatingActionButton';
@@ -13,14 +11,7 @@ import Paper from 'material-ui/Paper';
 import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
 
-import {
-  Table,
-  TableBody,
-  TableHeader,
-  TableHeaderColumn,
-  TableRow,
-  TableRowColumn
-} from 'material-ui/Table';
+import DataTable from '../Table/TableComponent';
 
 import {
   refs,
@@ -43,6 +34,19 @@ class UserList extends React.Component {
       selectedKey: 0,
       isSelected: false,
       isSearching: false,
+      pDisplay: 15,
+      pCurrent: 1,
+      pTotal: 0,
+      sortBy: 'id',
+      sortOrder: 'asc',
+      headers: [
+        { name: 'Email', value: 'e', size: 3 },
+        { name: 'Name', value: 'n', size: 3 },
+        { name: 'phoneNumber', value: 'p', size: 3 },
+        { name: 'isPhoneValid', value: 'isPV', size: 2 },
+        { name: 'CreatedAt', value: 'cAt', size: 3 },
+        { name: 'State', value: 'isB', size: 1 }
+      ]
     };
   }
 
@@ -50,11 +54,12 @@ class UserList extends React.Component {
     refs.user.root.once('value', (data) => {
       this.setState({ tempUsers: Object.keys(data.val()).map(key => data.val()[key])
         .filter((user) => {
-          if (user.permission !== 'admin') return true;
+          if (user.permission !== 'admin' && user.id) return true;
           return false;
         })
       }, () => {
         this.setState({ users: this.state.tempUsers }, () => {
+          this.handleSetTotalPage(this.state.users.length);
           this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
             let isIn = false;
             const len = this.state.users.length;
@@ -64,10 +69,14 @@ class UserList extends React.Component {
                 break;
               }
             }
-            if (user.child('permission').val() !== 'admin' && !isIn) this.setState({ users: this.state.users.concat(user.val()) });
+            if (user.child('permission').val() !== 'admin' && user.child('id').val() && !isIn) {
+              this.setState({ users: this.state.users.concat(user.val()) }, () => {
+                this.handleSetTotalPage(this.state.users.length);
+              });
+            }
           });
           this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (user) => {
-            if (user.child('permission').val() !== 'admin') {
+            if (user.child('permission').val() !== 'admin' && user.child('id').val()) {
               let isIn = false;
               this.setState({
                 users: this.state.users.map((u) => {
@@ -78,7 +87,11 @@ class UserList extends React.Component {
                   return u;
                 })
               }, () => {
-                if (!isIn) this.setState({ users: this.state.users.concat(user.val()) });
+                if (!isIn) {
+                  this.setState({ users: this.state.users.concat(user.val()) }, () => {
+                    this.handleSetTotalPage(this.state.users.length);
+                  });
+                }
               });
             } else {
               this.setState({
@@ -88,6 +101,8 @@ class UserList extends React.Component {
                   }
                   return true;
                 })
+              }, () => {
+                this.handleSetTotalPage(this.state.users.length);
               });
             }
           });
@@ -99,6 +114,8 @@ class UserList extends React.Component {
                 }
                 return true;
               })
+            }, () => {
+              this.handleSetTotalPage(this.state.users.length);
             });
           });
         });
@@ -151,7 +168,7 @@ class UserList extends React.Component {
         setTimeout(() => {
           this.setState({ users: [] });
           this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
-            if (data.child('permission').val() === null) this.setState({ users: this.state.users.concat(data.val()) });
+            if (data.child('permission').val() === null && data.child('id').val()) this.setState({ users: this.state.users.concat(data.val()) });
           });
           if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
         }, 100);
@@ -163,13 +180,44 @@ class UserList extends React.Component {
     this.setState({ selectedKey: 0 }, () => {
       if (keys.length > 0) {
         keys.map((key) => {
-          this.setState({ selectedKey: key });
+          this.setState({ selectedKey: key + ((this.state.pCurrent - 1) * this.state.pDisplay) });
           return key;
         });
         this.setState({ isSelected: true });
       } else if (keys.length === 0) {
         this.setState({ isSelected: false });
       }
+    });
+  }
+
+  handleSetPage = (pCurrent) => {
+    this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
+    if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
+  }
+
+  handleSetTotalPage = (itemLength) => {
+    const pTotal = Math.ceil(itemLength / this.state.pDisplay);
+    if (pTotal !== this.state.pTotal) this.setState({ pTotal });
+  }
+
+  handleSorting = (e, prop) => {
+    const sortOrder = this.state.sortOrder;
+    const sortBy = this.state.sortBy;
+    this.setState({
+      users: prop !== 'No' ? this.state.users.sort((a, b) => {
+        if (sortOrder === 'asc' || sortBy !== prop) {
+          if (a[prop] > b[prop]) return 1;
+          else if (a[prop] < b[prop]) return -1;
+          return 0;
+        }
+        if (a[prop] < b[prop]) return 1;
+        else if (a[prop] > b[prop]) return -1;
+        return 0;
+      }) : this.state.users.reverse()
+    }, () => {
+      const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
+      this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
+      this.setState({ sortBy: prop });
     });
   }
 
@@ -205,10 +253,6 @@ class UserList extends React.Component {
                 </FloatingActionButton>
               </div>
             </div>
-            {/* <i style={{ paddingLeft: 31 }} >Action for selected user...</i>*/}
-            {/* <i style={{ paddingLeft: 31 }} >{this.props.viewer.users}</i>*/}
-
-
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
                 <RaisedButton
@@ -256,7 +300,6 @@ class UserList extends React.Component {
                     margin: 12
                   }}
                 />
-
               </div>
               <div
                 style={{
@@ -274,68 +317,22 @@ class UserList extends React.Component {
                 <div style={{ paddingLeft: 20, width: 40, height: 40 }}>
                   {this.renderSpinner()}
                 </div>
-
               </div>
             </div>
-            <div style={{ float: 'clear' }} >
-              <Table
-                selectable
-                fixedHeader
-                onRowSelection={this.handleRowSelection}
-              >
-                <TableHeader>
-                  <TableRow>
-                    <TableHeaderColumn colSpan='3'>Email</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Name</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>phoneNumber</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>isPhoneValid</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>State</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>Action</TableHeaderColumn>
-                  </TableRow>
-                </TableHeader>
-                <TableBody
-                  deselectOnClickaway={false}
-                >
-                  {this.state.users.map((user) => {
-                    const time = moment(user.cAt).calendar();
-                    return (
-                      <TableRow key={user.id}>
-                        <TableRowColumn colSpan='3'>{user.e}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{user.n}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{user.p}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>{user.isPV ? 'YES' : 'NO'}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{`${time}`}</TableRowColumn>
-                        <TableHeaderColumn colSpan='2'>{user.isB ? 'Blocked' : 'Unblocked'}</TableHeaderColumn>
-                        <TableRowColumn colSpan='2'>
-                          <Link to={`/user/${user.id}`}>
-                            <RaisedButton label='Details' primary />
-                          </Link>
-                        </TableRowColumn>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table></div>
-
+            <DataTable
+              class='user'
+              items={this.state.users}
+              headers={this.state.headers}
+              pCurrent={this.state.pCurrent}
+              pDisplay={this.state.pDisplay}
+              pTotal={this.state.pTotal}
+              handleRowSelection={this.handleRowSelection}
+              handleSetPage={this.handleSetPage}
+              sortOrder={this.state.sortOrder}
+              sortBy={this.state.sortBy}
+              onClickSort={this.handleSorting}
+            />
           </Paper>
-
-
-          {/* <DataTable
-            width='100%'
-            selectable
-            onSelectionChanged={() => {}}
-            shadow={0}
-            rowKeyColumn='id'
-            rows={data}
-          >
-            <TableHeader name='name' tooltip='name of UserList'>Name</TableHeader>
-            <TableHeader name='email' tooltip='email of user'>email</TableHeader>
-            <TableHeader numeric name='rating' tooltip='rating of user.'>Rating</TableHeader>
-            <TableHeader name='action' tooltip='Action for user.'>Action</TableHeader>
-             <TableHeader numeric name='rating' cellFormatter={price => `\$${price.toFixed(2)}`} tooltip='Price pet unit'>rating</TableHeader>
-
-          </DataTable>*/}
           <Dialog
             title='Create User'
             actions={createUserModalActions}

@@ -1,13 +1,9 @@
 import csv from 'csv-string';
 import React from 'react';
-import moment from 'moment';
-
-import { Link } from 'react-router';
 
 import FloatingActionButton from 'material-ui/FloatingActionButton';
 import ContentAdd from 'material-ui/svg-icons/content/add';
 import ActionNoteAdd from 'material-ui/svg-icons/action/note-add';
-import RaisedButton from 'material-ui/RaisedButton';
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
 import Divider from 'material-ui/Divider';
@@ -16,15 +12,7 @@ import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
 import DropDownMenu from 'material-ui/DropDownMenu';
 import MenuItem from 'material-ui/MenuItem';
-
-import {
-  Table,
-  TableBody,
-  TableHeader,
-  TableHeaderColumn,
-  TableRow,
-  TableRowColumn
-} from 'material-ui/Table';
+import DataTable from '../Table/TableComponent';
 
 import {
   refs,
@@ -51,6 +39,18 @@ export default class NodeList extends React.Component {
       c1: -1,
       c2: -1,
       c3: -1,
+      pDisplay: 15,
+      pCurrent: 1,
+      pTotal: 0,
+      sortBy: 'id',
+      sortOrder: 'asc',
+      headers: [
+        { name: 'Image', value: 'imgUrl', size: 3 },
+        { name: 'Name', value: 'n', size: 3 },
+        { name: 'Address', value: 'addr', size: 4 },
+        { name: 'Phone', value: 'p', size: 2 },
+        { name: 'CreatedAt', value: 'cAt', size: 3 },
+      ]
     };
   }
 
@@ -93,9 +93,11 @@ export default class NodeList extends React.Component {
   };
 
   initList() {
-    refs.node.root.orderByChild('createdAt').limitToLast(20).once('value', (data) => {
+    refs.node.root.orderByChild('createdAt').once('value', (data) => {
       if (data.val()) {
-        this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) });
+        this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) }, () => {
+          this.handleSetTotalPage(this.state.nodes.length);
+        });
       }
     });
 
@@ -220,6 +222,37 @@ export default class NodeList extends React.Component {
       .catch(console.log);
   };
 
+  handleSetPage = (pCurrent) => {
+    this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
+    if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
+  }
+
+  handleSetTotalPage = (itemLength) => {
+    const pTotal = Math.ceil(itemLength / this.state.pDisplay);
+    if (pTotal !== this.state.pTotal) this.setState({ pTotal });
+  }
+
+  handleSorting = (e, prop) => {
+    const sortOrder = this.state.sortOrder;
+    const sortBy = this.state.sortBy;
+    this.setState({
+      orders: prop !== 'No' ? this.state.nodes.sort((a, b) => {
+        if (sortOrder === 'asc' || sortBy !== prop) {
+          if (a[prop] > b[prop]) return 1;
+          else if (a[prop] < b[prop]) return -1;
+          return 0;
+        }
+        if (a[prop] < b[prop]) return 1;
+        else if (a[prop] > b[prop]) return -1;
+        return 0;
+      }) : this.state.nodes.reverse()
+    }, () => {
+      const nextSortOrder = this.state.sortOrder === 'dsc' ? 'asc' : 'dsc';
+      this.setState({ sortOrder: (this.state.sortBy === prop ? nextSortOrder : 'dsc') });
+      this.setState({ sortBy: prop });
+    });
+  }
+
   renderSpinner() {
     if (this.state.isSearching) {
       return (<CircularProgress size={25} thickness={2} />);
@@ -336,42 +369,21 @@ export default class NodeList extends React.Component {
               {/* ) : null*/}
               {/* }*/}
               {/* </DropDownMenu>*/}
-              <Table
-                selectable
-                fixedHeader
-              >
-                <TableHeader>
-                  <TableRow>
-                    <TableHeaderColumn colSpan='2'>image</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>Name</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Address</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Phone</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Action</TableHeaderColumn>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {this.state.nodes.map((node) => {
-                    const time = node.cAt ? moment(node.cAt).calendar() : 'N/A';
-                    return (
-                      <TableRow key={node.id}>
-                        <TableRowColumn colSpan='2'><img width={50} role='presentation' src={node.imgUrl} /></TableRowColumn>
-                        <TableRowColumn colSpan='2'>{node.n}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{node.addr}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{node.p}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{`${time}`}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>
-                          <Link to={`/node/${node.id}`}>
-                            <RaisedButton label='Details' primary />
-                          </Link>
-                          {/* </RaisedButton>*/}
-                        </TableRowColumn>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table></div>
 
+            </div>
+            <DataTable
+              class='order'
+              items={this.state.nodes}
+              headers={this.state.headers}
+              pCurrent={this.state.pCurrent}
+              pDisplay={this.state.pDisplay}
+              pTotal={this.state.pTotal}
+              handleRowSelection={this.handleRowSelection}
+              handleSetPage={this.handleSetPage}
+              sortOrder={this.state.sortOrder}
+              sortBy={this.state.sortBy}
+              onClickSort={this.handleSorting}
+            />
           </Paper>
           <Dialog
             title='Create Node'
