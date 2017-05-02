@@ -19,8 +19,7 @@ export default class OrderMain extends React.Component {
         <Layout fixedDrawer>
           <Drawer title='Order' style={{ paddingTop: 65 }}>
             <Navigation>
-              <Link to='/order'>Order</Link>
-              <Link to='/order/list'>List of Nodes</Link>
+              <Link to='/order/list'>List of Orders</Link>
             </Navigation>
           </Drawer>
           <Content style={{ paddingTop: 65 }}>{this.props.children}</Content>

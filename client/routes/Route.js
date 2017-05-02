@@ -9,21 +9,22 @@ import UserMainComponent from '../components/User/UserMainComponent';
 import UserListComponent from '../components/User/UserListComponent';
 import UserDetailComponent from '../components/User/UserDetailComponent';
 
-import RunnerMainComponent from '../components/Runner/RunnerMain';
-import RunnerListComponent from '../components/Runner/RunnerList';
-import RunnerJudgeListComponent from '../components/Runner/RunnerJudgeList';
+import RunnerMainComponent from '../components/Runner/RunnerMainComponent';
+import RunnerListComponent from '../components/Runner/RunnerListComponent';
+import RunnerJudgeListComponent from '../components/Runner/RunnerJudgeListComponent';
 
-import OrderMainComponent from '../components/Order/OrderMain';
-import OrderListComponent from '../components/Order/OrderList';
+import OrderMainComponent from '../components/Order/OrderMainComponent';
+import OrderListComponent from '../components/Order/OrderListComponent';
+import OrderDetailComponent from '../components/Order/OrderDetailComponent';
 
 import NodeMainComponent from '../components/Node/NodeMainComponent';
 import NodeListComponent from '../components/Node/NodeListComponent';
 import NodeDetailComponent from '../components/Node/NodeDetailComponent';
 
-import PartnerMainComponent from '../components/Partner/PartnerMain';
-import PartnerListComponent from '../components/Partner/PartnerList';
+import PartnerMainComponent from '../components/Partner/PartnerMainComponent';
+import PartnerListComponent from '../components/Partner/PartnerListComponent';
 
-import MapContentComponent from '../components/Map/MapContent';
+import MapContentComponent from '../components/Map/MapContentComponent';
 
 import { deleteAuth, checkAuthRoute } from '../auth/Auth';
 
@@ -49,7 +50,8 @@ export default (
 
     <Route path='/order' component={OrderMainComponent} onEnter={checkAuthRoute}>
       <IndexRoute component={OrderListComponent} />
-      <Route path='list' component={OrderListComponent} />
+      <Route path='/order/list' component={OrderListComponent} />
+      <Route path='/order/:id' component={OrderDetailComponent} />
       <Redirect from='*' to='/order' />
     </Route>
 

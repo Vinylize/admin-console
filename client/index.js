@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import injectTapEventPlugin from 'react-tap-event-plugin';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import { AppContainer } from 'react-hot-loader';
-import LoadingComponent from './routes/LoadingComponent';
+import LoadingComponent from './components/Loading/LoadingComponent';
 import '../node_modules/react-mdl/extra/material';
 import Root from './root';
 
