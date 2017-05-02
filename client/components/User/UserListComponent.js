@@ -46,7 +46,7 @@ class UserList extends React.Component {
     };
   }
 
-  componentWillMount() {
+  componentDidMount() {
     refs.user.root.once('value', (data) => {
       this.setState({ tempUsers: Object.keys(data.val()).map(key => data.val()[key])
         .filter((user) => {

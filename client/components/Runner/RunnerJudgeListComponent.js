@@ -41,7 +41,7 @@ export default class RunnerJudgeList extends React.Component {
     this.handleIdImageModalClose = this.handleIdImageModalClose.bind(this);
     this.handleApproveRunner = this.handleApproveRunner.bind(this);
   }
-  componentWillMount() {
+  componentDidMount() {
     refs.user.root.once('value', (data) => {
       this.setState({ tempUsers: Object.keys(data.val()).map(key => data.val()[key])
         .filter((user) => {
