@@ -64,6 +64,16 @@ class OrderList extends React.Component {
               if (!isIn) this.setState({ orders: this.state.orders.concat(order.val()) });
             });
           });
+          this.orderRootChildRemoved = refs.order.root.orderByKey().on('child_removed', (order) => {
+            this.setState({
+              orders: this.state.orders.filter((o) => {
+                if (order.child('id').val() === o.id) {
+                  return false;
+                }
+                return true;
+              })
+            });
+          });
         });
       });
     });
@@ -72,6 +82,7 @@ class OrderList extends React.Component {
   componentWillUnmount() {
     refs.order.root.off('child_added', this.orderRootChildAdded);
     refs.order.root.off('child_changed', this.orderRootChildAdded);
+    refs.order.root.off('child_removed', this.orderRootChildRemoved);
   }
 
   onSearchQueryChange(e) {

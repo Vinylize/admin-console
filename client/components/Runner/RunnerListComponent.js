@@ -80,6 +80,16 @@ export default class RunnerList extends React.Component {
               });
             }
           });
+          this.userRootChildRemoved = refs.user.root.orderByKey().on('child_removed', (user) => {
+            this.setState({
+              users: this.state.users.filter((u) => {
+                if (user.child('id').val() === u.id) {
+                  return false;
+                }
+                return true;
+              })
+            });
+          });
         });
       });
     });
@@ -88,6 +98,7 @@ export default class RunnerList extends React.Component {
   componentWillUnmount() {
     refs.user.root.off('child_added', this.userRootChildAdded);
     refs.user.root.off('child_changed', this.userRootChildChanged);
+    refs.user.root.off('child_removed', this.userRootChildRemoved);
   }
 
   onSearchQueryChange(e) {
