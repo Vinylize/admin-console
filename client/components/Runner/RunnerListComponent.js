@@ -41,7 +41,7 @@ export default class RunnerList extends React.Component {
     refs.user.root.once('value', (data) => {
       this.setState({ tempUsers: Object.keys(data.val()).map(key => data.val()[key])
         .filter((user) => {
-          if (user.isRA === true) return true;
+          if (user.isRA === true && user.permission !== 'admin') return true;
           return false;
         })
       }, () => {
@@ -55,10 +55,10 @@ export default class RunnerList extends React.Component {
                 break;
               }
             }
-            if (user.child('isRA').val() === true && !isIn) this.setState({ users: this.state.users.concat(user.val()) });
+            if (user.child('isRA').val() === true && user.child('permission') !== 'admin' && !isIn) this.setState({ users: this.state.users.concat(user.val()) });
           });
           this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (user) => {
-            if (user.child('isRA').val() === true) {
+            if (user.child('isRA').val() === true && user.child('permission') !== 'admin') {
               let isIn = false;
               this.setState({
                 users: this.state.users.map((u) => {
