@@ -17,7 +17,7 @@ export default class TableHeaderColumnSort extends React.Component {
     const sortIcon = this.props.sortOrder === 'asc' ? '▼' : '▲';
     return (
       <TableHeaderColumn colSpan={`${this.props.size}`}>
-        <button onClick={e => this.props.onClickSort(e, this.props.value)}>
+        <button onClick={e => this.props.onClickSort(e, this.props.value)} style={{ border: 0, outline: 0, background: 'none' }}>
           <h6 style={{ cursor: 'pointer' }} value={`${this.props.value}`}>
             {`${this.props.header} ${this.props.sortBy === this.props.value ? sortIcon : ''}`}
           </h6>
