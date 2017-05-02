@@ -54,42 +54,48 @@ class UserList extends React.Component {
           return false;
         })
       }, () => {
-        this.setState({ users: this.state.tempUsers });
+        this.setState({ users: this.state.tempUsers }, () => {
+          this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
+            let isIn = false;
+            const len = this.state.users.length;
+            for (let i = 0; i < len; ++i) {
+              if (this.state.users[i].id === user.val().id) {
+                isIn = true;
+                break;
+              }
+            }
+            if (user.child('permission').val() !== 'admin' && !isIn) this.setState({ users: this.state.users.concat(user.val()) });
+          });
+          this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (user) => {
+            this.setState({ isSelected: false });
+            if (user.child('permission').val() !== 'admin') {
+              let isIn = false;
+              this.setState({
+                users: this.state.users.map((u) => {
+                  if (user.child('id').val() === u.id) {
+                    isIn = true;
+                    return user.val();
+                  }
+                  return u;
+                })
+              }, () => {
+                if (!isIn) this.setState({ users: this.state.users.concat(user.val()) });
+              });
+            } else {
+              this.setState({
+                users: this.state.users.filter((u) => {
+                  if (user.child('id').val() === u.id) {
+                    return false;
+                  }
+                  return true;
+                })
+              }, () => {
+                if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
+              });
+            }
+          });
+        });
       });
-    });
-  }
-
-  componentDidMount() {
-    this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
-      if (user.child('permission').val() !== 'admin') this.setState({ users: this.state.users.concat(user.val()) });
-    });
-    this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (data) => {
-      this.setState({ isSelected: false });
-      if (data.child('permission').val() !== 'admin') {
-        let isIn = false;
-        this.setState({
-          users: this.state.users.map((user) => {
-            if (data.child('id').val() === user.id) {
-              isIn = true;
-              return data.val();
-            }
-            return user;
-          })
-        }, () => {
-          if (!isIn) this.setState({ users: this.state.users.concat(data.val()) });
-        });
-      } else {
-        this.setState({
-          users: this.state.users.filter((user) => {
-            if (data.child('id').val() === user.id) {
-              return false;
-            }
-            return true;
-          })
-        }, () => {
-          if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
-        });
-      }
     });
   }
 

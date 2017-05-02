@@ -22,7 +22,7 @@ import {
   refs
 } from '../../util/firebase';
 
-const uploadBaseUrl = 'https://api.yetta.co/graphql?query=';
+const uploadBaseUrl = 'http://127.0.0.1:5002/graphql?query=';
 
 export default class RunnerList extends React.Component {
   constructor(props) {
@@ -45,40 +45,46 @@ export default class RunnerList extends React.Component {
           return false;
         })
       }, () => {
-        this.setState({ users: this.state.tempUsers });
-      });
-    });
-  }
-
-  componentDidMount() {
-    this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
-      if (user.child('isRA').val() === true) this.setState({ users: this.state.users.concat(user.val()) });
-    });
-    this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (data) => {
-      this.setState({ isSelected: false });
-      if (data.child('isRA').val() === true) {
-        let isIn = false;
-        this.setState({
-          users: this.state.users.map((user) => {
-            if (data.child('id').val() === user.id) {
-              isIn = true;
-              return data.val();
+        this.setState({ users: this.state.tempUsers }, () => {
+          this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
+            let isIn = false;
+            const len = this.state.users.length;
+            for (let i = 0; i < len; ++i) {
+              if (this.state.users[i].id === user.val().id) {
+                isIn = true;
+                break;
+              }
             }
-            return user;
-          })
-        }, () => {
-          if (!isIn) this.setState({ users: this.state.users.concat(data.val()) });
+            if (user.child('isRA').val() === true && !isIn) this.setState({ users: this.state.users.concat(user.val()) });
+          });
+          this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (user) => {
+            this.setState({ isSelected: false });
+            if (user.child('isRA').val() === true) {
+              let isIn = false;
+              this.setState({
+                users: this.state.users.map((u) => {
+                  if (user.child('id').val() === u.id) {
+                    isIn = true;
+                    return user.val();
+                  }
+                  return u;
+                })
+              }, () => {
+                if (!isIn) this.setState({ users: this.state.users.concat(user.val()) });
+              });
+            } else {
+              this.setState({
+                users: this.state.users.filter((u) => {
+                  if (user.child('id').val() === u.id) return false;
+                  return true;
+                })
+              }, () => {
+                if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
+              });
+            }
+          });
         });
-      } else {
-        this.setState({
-          users: this.state.users.filter((user) => {
-            if (data.child('id').val() === user.id) return false;
-            return true;
-          })
-        }, () => {
-          if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
-        });
-      }
+      });
     });
   }
 

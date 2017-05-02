@@ -50,21 +50,21 @@ class OrderList extends React.Component {
             }
             if (!isIn) this.setState({ orders: this.state.orders.concat(order.val()) });
           });
+          this.orderRootChildChanged = refs.order.root.orderByKey().on('child_changed', (order) => {
+            let isIn = false;
+            this.setState({
+              orders: this.state.orders.map((o) => {
+                if (order.child('id').val() === o.id) {
+                  isIn = true;
+                  return order.val();
+                }
+                return order;
+              })
+            }, () => {
+              if (!isIn) this.setState({ orders: this.state.orders.concat(order.val()) });
+            });
+          });
         });
-      });
-    });
-    this.orderRootChildChanged = refs.order.root.orderByKey().on('child_changed', (data) => {
-      let isIn = false;
-      this.setState({
-        orders: this.state.orders.map((order) => {
-          if (data.child('id').val() === order.id) {
-            isIn = true;
-            return data.val();
-          }
-          return order;
-        })
-      }, () => {
-        if (!isIn) this.setState({ orders: this.state.orders.concat(data.val()) });
       });
     });
   }
@@ -162,25 +162,27 @@ class OrderList extends React.Component {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {this.state.orders.map((order) => {
-                    const time = moment(order.cAt).calendar();
-                    return (
-                      <TableRow key={order.id}>
-                        <TableRowColumn colSpan='2'>{order.oId}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>{order.rId}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{order.nId}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>{order.eDP}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>{order.tP}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>{order.curr}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{time}</TableRowColumn>
-                        <TableRowColumn colSpan='2'>
-                          <Link to={`/order/${order.id}`}>
-                            <RaisedButton label='Details' primary />
-                          </Link>
-                        </TableRowColumn>
-                      </TableRow>
-                    );
-                  })}
+                  {
+                    this.state.orders.map((order) => {
+                      const time = moment(order.cAt).calendar();
+                      return (
+                        <TableRow key={order.id}>
+                          <TableRowColumn colSpan='2'>{order.oId}</TableRowColumn>
+                          <TableRowColumn colSpan='2'>{order.rId}</TableRowColumn>
+                          <TableRowColumn colSpan='3'>{order.nId}</TableRowColumn>
+                          <TableRowColumn colSpan='2'>{order.eDP}</TableRowColumn>
+                          <TableRowColumn colSpan='2'>{order.tP}</TableRowColumn>
+                          <TableRowColumn colSpan='2'>{order.curr}</TableRowColumn>
+                          <TableRowColumn colSpan='3'>{time}</TableRowColumn>
+                          <TableRowColumn colSpan='2'>
+                            <Link to={`/order/${order.id}`}>
+                              <RaisedButton label='Details' primary />
+                            </Link>
+                          </TableRowColumn>
+                        </TableRow>
+                      );
+                    })
+                  }
                 </TableBody>
               </Table></div>
           </Paper>
