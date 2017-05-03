@@ -36,84 +36,17 @@ export default class RunnerJudgeList extends React.Component {
         { name: 'phoneNumber', value: 'p', size: 2 },
         { name: 'CreatedAt', value: 'cAt', size: 3 },
         { name: 'State', value: 'isB', size: 2 }
-      ]
+      ],
+      loadedAtOnce: 100,
+      loadedCurrent: 0
     };
   }
   componentDidMount() {
-    refs.user.root.once('value', (data) => {
-      this.setState({ tempUsers: Object.keys(data.val()).map(key => data.val()[key])
-        .filter((user) => {
-          if (user.isWJ === true && user.permission !== 'admin') return true;
-          return false;
-        })
-      }, () => {
-        this.setState({ users: this.state.tempUsers }, () => {
-          this.handleSetTotalPage(this.state.users.length);
-          this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (user) => {
-            let isIn = false;
-            const len = this.state.users.length;
-            for (let i = 0; i < len; ++i) {
-              if (this.state.users[i].id === user.val().id) {
-                isIn = true;
-                break;
-              }
-            }
-            if (user.child('isWJ').val() === true && user.child('permission').val() !== 'admin' && !isIn) {
-              this.setState({ users: this.state.users.concat(user.val()) }, () => {
-                this.handleSetTotalPage(this.state.users.length);
-              });
-            }
-          });
-          this.userRootChildChanged = refs.user.root.orderByKey().on('child_changed', (user) => {
-            if (user.child('isWJ').val() === true && user.child('permission').val() !== 'admin') {
-              let isIn = false;
-              this.setState({
-                users: this.state.users.map((u) => {
-                  if (user.child('id').val() === u.id) {
-                    isIn = true;
-                    return user.val();
-                  }
-                  return u;
-                })
-              }, () => {
-                if (!isIn) {
-                  this.setState({ users: this.state.users.concat(user.val()) }, () => {
-                    this.handleSetTotalPage(this.state.users.length);
-                  });
-                }
-              });
-            } else {
-              this.setState({
-                users: this.state.users.filter((u) => {
-                  if (user.child('id').val() === u.id) return false;
-                  return true;
-                })
-              }, () => {
-                this.handleSetTotalPage(this.state.users.length);
-              });
-            }
-          });
-          this.userRootChildRemoved = refs.user.root.orderByKey().on('child_removed', (user) => {
-            this.setState({
-              users: this.state.users.filter((u) => {
-                if (user.child('id').val() === u.id) {
-                  return false;
-                }
-                return true;
-              })
-            }, () => {
-              this.handleSetTotalPage(this.state.users.length);
-            });
-          });
-        });
-      });
-    });
+    this.handleLoadData();
   }
 
   componentWillUnmount() {
-    refs.user.root.off('child_added', this.userRootChildAdded);
-    refs.user.root.off('child_changed', this.userRootChildChanged);
-    refs.user.root.off('child_removed', this.userRootChildRemoved);
+    refs.user.root.off();
   }
 
   onSearchQueryChange(e) {
@@ -241,6 +174,73 @@ export default class RunnerJudgeList extends React.Component {
       const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
       this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
       this.setState({ sortBy: prop });
+    });
+  }
+
+  handleLoadData = () => {
+    this.setState({
+      loadedCurrent: this.state.loadedCurrent + this.state.loadedAtOnce
+    }, () => {
+      this.userRootEvents = refs.user.root.orderByKey().limitToFirst(this.state.loadedCurrent);
+      this.userRootEvents.once('value')
+      .then((data) => {
+        this.setState({
+          tempUsers: Object.keys(data.val()).map(key => data.val()[key])
+          .filter((user) => {
+            if (user.isWJ && user.id) return true;
+            return false;
+          })
+        }, () => {
+          this.setState({ users: this.state.tempUsers }, () => {
+            this.handleSetTotalPage(this.state.users.length);
+            this.userRootEvents.on('child_added', (user) => {
+              let isIn = false;
+              const len = this.state.users.length;
+              for (let i = 0; i < len; ++i) {
+                if (this.state.users[i].id === user.val().id) {
+                  isIn = true;
+                  break;
+                }
+              }
+              if (user.child('isWJ').val() && user.child('id').val() && !isIn) {
+                this.setState({ users: this.state.users.concat(user.val()) }, () => {
+                  this.handleSetTotalPage(this.state.users.length);
+                });
+              }
+            });
+            this.userRootEvents.on('child_changed', (user) => {
+              let isIn = false;
+              this.setState({
+                users: this.state.users.map((u) => {
+                  if (user.child('id').val() === u.id) {
+                    isIn = true;
+                    return user.val();
+                  }
+                  return u;
+                })
+              }, () => {
+                if (user.child('isWJ').val() && user.child('id').val() && !isIn) {
+                  this.setState({ users: this.state.users.concat(user.val()) }, () => {
+                    this.handleSetTotalPage(this.state.users.length);
+                  });
+                }
+              });
+            });
+            this.userRootEvents.on('child_removed', (user) => {
+              this.setState({
+                users: this.state.users.filter((u) => {
+                  if (user.child('id').val() === u.id) {
+                    return false;
+                  }
+                  return true;
+                })
+              }, () => {
+                this.handleSetTotalPage(this.state.users.length);
+              });
+            });
+          });
+        });
+      });
     });
   }
 

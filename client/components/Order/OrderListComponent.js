@@ -4,7 +4,6 @@ import RaisedButton from 'material-ui/RaisedButton';
 import Paper from 'material-ui/Paper';
 import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
-
 import DataTable from '../Table/TableComponent';
 
 import { refs } from '../../util/firebase';
@@ -35,71 +34,18 @@ class OrderList extends React.Component {
         { name: 'Total Price', value: 'tP', size: 2 },
         { name: 'Currency', value: 'curr', size: 1 },
         { name: 'createdAt', value: 'cAt', size: 3 }
-      ]
+      ],
+      loadedAtOnce: 100,
+      loadedCurrent: 0,
     };
   }
 
   componentDidMount() {
-    refs.order.root.once('value', (data) => {
-      this.setState({
-        tempOrders: Object.keys(data.val()).map(key => data.val()[key])
-      }, () => {
-        this.setState({ orders: this.state.tempOrders }, () => {
-          this.handleSetTotalPage(this.state.orders.length);
-          this.orderRootChildAdded = refs.order.root.orderByKey().on('child_added', (order) => {
-            let isIn = false;
-            const len = this.state.orders.length;
-            for (let i = 0; i < len; ++i) {
-              if (this.state.orders[i].id === order.val().id) {
-                isIn = true;
-                break;
-              }
-            }
-            if (!isIn) {
-              this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
-                this.handleSetTotalPage(this.state.orders.length);
-              });
-            }
-          });
-          this.orderRootChildChanged = refs.order.root.orderByKey().on('child_changed', (order) => {
-            let isIn = false;
-            this.setState({
-              orders: this.state.orders.map((o) => {
-                if (order.child('id').val() === o.id) {
-                  isIn = true;
-                  return order.val();
-                }
-                return order;
-              })
-            }, () => {
-              if (!isIn) {
-                this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
-                  this.handleSetTotalPage(this.state.orders.length);
-                });
-              }
-            });
-          });
-          this.orderRootChildRemoved = refs.order.root.orderByKey().on('child_removed', (order) => {
-            this.setState({
-              orders: this.state.orders.filter((o) => {
-                if (order.child('id').val() === o.id) {
-                  return false;
-                }
-                return true;
-              })
-            }, () => {
-              this.handleSetTotalPage(this.state.orders.length);
-            });
-          });
-        });
-      });
-    });
+    this.handleLoadData();
   }
 
   componentWillUnmount() {
-    refs.order.root.off('child_added', this.orderRootChildAdded);
-    refs.order.root.off('child_changed', this.orderRootChildAdded);
-    refs.order.root.off('child_removed', this.orderRootChildRemoved);
+    refs.order.root.off();
   }
 
   onSearchQueryChange(e) {
@@ -127,6 +73,7 @@ class OrderList extends React.Component {
   handleSetPage = (pCurrent) => {
     this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
     if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
+    if (pCurrent === this.state.pTotal) this.handleLoadData();
   }
 
   handleSetTotalPage = (itemLength) => {
@@ -152,6 +99,70 @@ class OrderList extends React.Component {
       const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
       this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
       this.setState({ sortBy: prop });
+    });
+  }
+
+  handleLoadData = () => {
+    this.setState({ isLoading: true });
+    this.setState({
+      loadedCurrent: this.state.loadedCurrent + this.state.loadedAtOnce
+    }, () => {
+      this.orderRootEvents = refs.order.root.orderByKey().limitToFirst(this.state.loadedCurrent);
+      this.orderRootEvents.once('value')
+      .then((data) => {
+        this.setState({
+          tempOrders: Object.keys(data.val()).map(key => data.val()[key])
+        }, () => {
+          this.setState({ orders: this.state.tempOrders }, () => {
+            this.handleSetTotalPage(this.state.orders.length);
+            this.orderRootEvents.on('child_added', (order) => {
+              let isIn = false;
+              const len = this.state.orders.length;
+              for (let i = 0; i < len; ++i) {
+                if (this.state.orders[i].id === order.val().id) {
+                  isIn = true;
+                  break;
+                }
+              }
+              if (!isIn) {
+                this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
+                  this.handleSetTotalPage(this.state.orders.length);
+                });
+              }
+            });
+            this.orderRootEvents.on('child_changed', (order) => {
+              let isIn = false;
+              this.setState({
+                orders: this.state.orders.map((o) => {
+                  if (order.child('id').val() === o.id) {
+                    isIn = true;
+                    return order.val();
+                  }
+                  return o;
+                })
+              }, () => {
+                if (!isIn) {
+                  this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
+                    this.handleSetTotalPage(this.state.orders.length);
+                  });
+                }
+              });
+            });
+            this.orderRootEvents.on('child_removed', (order) => {
+              this.setState({
+                orders: this.state.orders.filter((o) => {
+                  if (order.child('id').val() === o.id) {
+                    return false;
+                  }
+                  return true;
+                })
+              }, () => {
+                this.handleSetTotalPage(this.state.orders.length);
+              });
+            });
+          });
+        });
+      });
     });
   }
 
