@@ -50,7 +50,9 @@ export default class NodeList extends React.Component {
         { name: 'Address', value: 'addr', size: 4 },
         { name: 'Phone', value: 'p', size: 2 },
         { name: 'CreatedAt', value: 'cAt', size: 3 },
-      ]
+      ],
+      loadedAtOnce: 100,
+      loadedCurrent: 0,
     };
   }
 
@@ -93,14 +95,7 @@ export default class NodeList extends React.Component {
   };
 
   initList() {
-    refs.node.root.orderByChild('createdAt').once('value', (data) => {
-      if (data.val()) {
-        this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) }, () => {
-          this.handleSetTotalPage(this.state.nodes.length);
-        });
-      }
-    });
-
+    this.handleLoadData();
     this.getNodeCategoryFromServer()
       .then((nodeCategory) => {
         this.setState({ nodeCategory });
@@ -225,6 +220,7 @@ export default class NodeList extends React.Component {
   handleSetPage = (pCurrent) => {
     this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
     if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
+    if (pCurrent === this.state.pTotal) this.handleLoadData();
   }
 
   handleSetTotalPage = (itemLength) => {
@@ -250,6 +246,20 @@ export default class NodeList extends React.Component {
       const nextSortOrder = this.state.sortOrder === 'dsc' ? 'asc' : 'dsc';
       this.setState({ sortOrder: (this.state.sortBy === prop ? nextSortOrder : 'dsc') });
       this.setState({ sortBy: prop });
+    });
+  }
+
+  handleLoadData = () => {
+    this.setState({
+      loadedCurrent: this.state.loadedCurrent + this.state.loadedAtOnce
+    }, () => {
+      refs.node.root.orderByChild('createdAt').limitToFirst(this.state.loadedCurrent).once('value', (data) => {
+        if (data.val()) {
+          this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) }, () => {
+            this.handleSetTotalPage(this.state.nodes.length);
+          });
+        }
+      });
     });
   }
 
