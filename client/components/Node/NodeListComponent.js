@@ -233,19 +233,23 @@ export default class NodeList extends React.Component {
     const sortBy = this.state.sortBy;
     this.setState({
       orders: prop !== 'No' ? this.state.nodes.sort((a, b) => {
-        if (sortOrder === 'asc' || sortBy !== prop) {
+        if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
+          if (!a[prop]) return -1;
           if (a[prop] > b[prop]) return 1;
           else if (a[prop] < b[prop]) return -1;
           return 0;
         }
+        if (!a[prop]) return 1;
         if (a[prop] < b[prop]) return 1;
         else if (a[prop] > b[prop]) return -1;
         return 0;
       }) : this.state.nodes.reverse()
     }, () => {
-      const nextSortOrder = this.state.sortOrder === 'dsc' ? 'asc' : 'dsc';
-      this.setState({ sortOrder: (this.state.sortBy === prop ? nextSortOrder : 'dsc') });
-      this.setState({ sortBy: prop });
+      if (e) {
+        const nextSortOrder = this.state.sortOrder === 'dsc' ? 'asc' : 'dsc';
+        this.setState({ sortOrder: (this.state.sortBy === prop ? nextSortOrder : 'dsc') });
+        this.setState({ sortBy: prop });
+      }
     });
   }
 
@@ -257,6 +261,7 @@ export default class NodeList extends React.Component {
         if (data.val()) {
           this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) }, () => {
             this.handleSetTotalPage(this.state.nodes.length);
+            this.handleSorting(null, this.state.sortBy);
           });
         }
       });

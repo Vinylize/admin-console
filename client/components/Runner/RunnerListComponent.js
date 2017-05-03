@@ -158,19 +158,23 @@ export default class RunnerList extends React.Component {
     const sortBy = this.state.sortBy;
     this.setState({
       users: prop !== 'No' ? this.state.users.sort((a, b) => {
-        if (sortOrder === 'asc' || sortBy !== prop) {
+        if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
+          if (!a[prop]) return -1;
           if (a[prop] > b[prop]) return 1;
           else if (a[prop] < b[prop]) return -1;
           return 0;
         }
+        if (!a[prop]) return 1;
         if (a[prop] < b[prop]) return 1;
         else if (a[prop] > b[prop]) return -1;
         return 0;
       }) : this.state.users.reverse()
     }, () => {
-      const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
-      this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
-      this.setState({ sortBy: prop });
+      if (e) {
+        const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
+        this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
+        this.setState({ sortBy: prop });
+      }
     });
   }
 
@@ -235,6 +239,7 @@ export default class RunnerList extends React.Component {
                 this.handleSetTotalPage(this.state.users.length);
               });
             });
+            setTimeout(() => { this.handleSorting(null, this.state.sortBy); }, 1000);
           });
         });
       });

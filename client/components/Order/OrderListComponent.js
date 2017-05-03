@@ -86,19 +86,23 @@ class OrderList extends React.Component {
     const sortBy = this.state.sortBy;
     this.setState({
       orders: prop !== 'No' ? this.state.orders.sort((a, b) => {
-        if (sortOrder === 'asc' || sortBy !== prop) {
+        if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
+          if (!a[prop]) return -1;
           if (a[prop] > b[prop]) return 1;
           else if (a[prop] < b[prop]) return -1;
           return 0;
         }
+        if (!a[prop]) return 1;
         if (a[prop] < b[prop]) return 1;
         else if (a[prop] > b[prop]) return -1;
         return 0;
       }) : this.state.orders.reverse()
     }, () => {
-      const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
-      this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
-      this.setState({ sortBy: prop });
+      if (e) {
+        const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
+        this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
+        this.setState({ sortBy: prop });
+      }
     });
   }
 
@@ -160,6 +164,7 @@ class OrderList extends React.Component {
                 this.handleSetTotalPage(this.state.orders.length);
               });
             });
+            setTimeout(() => { this.handleSorting(null, this.state.sortBy); }, 1000);
           });
         });
       });
