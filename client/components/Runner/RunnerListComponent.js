@@ -5,6 +5,8 @@ import RaisedButton from 'material-ui/RaisedButton';
 import Paper from 'material-ui/Paper';
 import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
+import MenuItem from 'material-ui/MenuItem';
+import SelectField from 'material-ui/SelectField';
 import DataTable from '../Table/TableComponent';
 
 import {
@@ -21,9 +23,16 @@ export default class RunnerList extends React.Component {
       createUserModalOpen: false,
       tempUsers: [],
       users: [],
+      items: [],
       selectedKey: 0,
       isSelected: false,
+      searchBy: 'e',
       isSearching: false,
+      searchOptions: [
+        { name: 'Email', value: 'e' },
+        { name: 'Name', value: 'n' },
+        { name: 'Phone Number', value: 'p' }
+      ],
       pDisplay: 15,
       pCurrent: 1,
       pTotal: 0,
@@ -32,8 +41,8 @@ export default class RunnerList extends React.Component {
       headers: [
         { name: 'Email', value: 'e', size: 3 },
         { name: 'Name', value: 'n', size: 2 },
-        { name: 'phoneNumber', value: 'p', size: 2 },
-        { name: 'runnerApprovedAt', value: 'rAAt', size: 3 },
+        { name: 'Phone Number', value: 'p', size: 2 },
+        { name: 'RunnerApprovedAt', value: 'rAAt', size: 3 },
         { name: 'CreatedAt', value: 'cAt', size: 3 },
         { name: 'State', value: 'isB', size: 2 }
       ],
@@ -51,12 +60,27 @@ export default class RunnerList extends React.Component {
   }
 
   onSearchQueryChange(e) {
-    this.setState({ isSearching: true });
-    setTimeout(() => {
-      this.setState({ isSearching: false });
-    }, 4000);
-    console.log(e.target.value);
+    if (e.target.value) {
+      this.setState({
+        items: this.state.users.filter((user) => {
+          if (user[this.state.searchBy] && user[this.state.searchBy].match(e.target.value)) return true;
+          return false;
+        })
+      }, () => {
+        this.handleSetTotalPage();
+      });
+      this.setState({ isSearching: true });
+      setTimeout(() => {
+        this.setState({ isSearching: false });
+      }, 4000);
+    } else {
+      this.setState({ items: this.state.users }, () => {
+        this.handleSetTotalPage();
+        this.handleSorting(null, this.state.sortBy);
+      });
+    }
   }
+
   handleCreateUserModalOpen = () => {
     this.setState({ createUserModalOpen: true });
   };
@@ -146,6 +170,7 @@ export default class RunnerList extends React.Component {
   handleSetPage = (pCurrent) => {
     this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
     if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
+    if (pCurrent === this.state.pTotal) this.handleLoadData();
   }
 
   handleSetTotalPage = (itemLength) => {
@@ -157,7 +182,7 @@ export default class RunnerList extends React.Component {
     const sortOrder = this.state.sortOrder;
     const sortBy = this.state.sortBy;
     this.setState({
-      users: prop !== 'No' ? this.state.users.sort((a, b) => {
+      items: prop !== 'No' ? this.state.items.sort((a, b) => {
         if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
           if (!a[prop]) return -1;
           if (a[prop] > b[prop]) return 1;
@@ -168,7 +193,7 @@ export default class RunnerList extends React.Component {
         if (a[prop] < b[prop]) return 1;
         else if (a[prop] > b[prop]) return -1;
         return 0;
-      }) : this.state.users.reverse()
+      }) : this.state.items.reverse()
     }, () => {
       if (e) {
         const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
@@ -188,62 +213,71 @@ export default class RunnerList extends React.Component {
         this.setState({
           tempUsers: Object.keys(data.val()).map(key => data.val()[key])
           .filter((user) => {
-            if (user.isRA && user.id) return true;
+            if (user.isRA === true && user.id) return true;
             return false;
           })
         }, () => {
           this.setState({ users: this.state.tempUsers }, () => {
-            this.handleSetTotalPage(this.state.users.length);
-            this.userRootEvents.on('child_added', (user) => {
-              let isIn = false;
-              const len = this.state.users.length;
-              for (let i = 0; i < len; ++i) {
-                if (this.state.users[i].id === user.val().id) {
-                  isIn = true;
-                  break;
-                }
-              }
-              if (user.child('isRA').val() && user.child('id').val() && !isIn) {
-                this.setState({ users: this.state.users.concat(user.val()) }, () => {
-                  this.handleSetTotalPage(this.state.users.length);
-                });
-              }
-            });
-            this.userRootEvents.on('child_changed', (user) => {
-              let isIn = false;
-              this.setState({
-                users: this.state.users.map((u) => {
-                  if (user.child('id').val() === u.id) {
+            this.setState({ items: this.state.users }, () => {
+              this.handleSetTotalPage(this.state.users.length);
+              this.userRootEvents.on('child_added', (user) => {
+                let isIn = false;
+                const len = this.state.users.length;
+                for (let i = 0; i < len; ++i) {
+                  if (this.state.users[i].id === user.val().id) {
                     isIn = true;
-                    return user.val();
+                    break;
                   }
-                  return u;
-                })
-              }, () => {
-                if (user.child('isRA').val() && user.child('id').val() && !isIn) {
+                }
+                if (user.child('isRA').val() === true && user.child('id').val() && !isIn) {
                   this.setState({ users: this.state.users.concat(user.val()) }, () => {
-                    this.handleSetTotalPage(this.state.users.length);
+                    this.setState({ items: this.state.users });
+                    this.handleSetTotalPage();
                   });
                 }
               });
-            });
-            this.userRootEvents.on('child_removed', (user) => {
-              this.setState({
-                users: this.state.users.filter((u) => {
-                  if (user.child('id').val() === u.id) {
-                    return false;
+              this.userRootEvents.on('child_changed', (user) => {
+                let isIn = false;
+                this.setState({
+                  users: this.state.users.map((u) => {
+                    if (user.child('id').val() === u.id) {
+                      isIn = true;
+                      return user.val();
+                    }
+                    return u;
+                  })
+                }, () => {
+                  if (user.child('isRA').val() === true && user.child('id').val() && !isIn) {
+                    this.setState({ users: this.state.users.concat(user.val()) }, () => {
+                      this.setState({ items: this.state.users });
+                      this.handleSetTotalPage();
+                    });
                   }
-                  return true;
-                })
-              }, () => {
-                this.handleSetTotalPage(this.state.users.length);
+                });
               });
+              this.userRootEvents.on('child_removed', (user) => {
+                this.setState({
+                  users: this.state.users.filter((o) => {
+                    if (user.child('id').val() === o.id) {
+                      return false;
+                    }
+                    return true;
+                  })
+                }, () => {
+                  this.setState({ items: this.state.users });
+                  this.handleSetTotalPage();
+                });
+              });
+              setTimeout(() => { this.handleSorting(null, this.state.sortBy); }, 1000);
             });
-            setTimeout(() => { this.handleSorting(null, this.state.sortBy); }, 1000);
           });
         });
       });
     });
+  }
+
+  handleChangeSearchBy = (e, i, v) => {
+    this.setState({ searchBy: v });
   }
 
   renderSpinner() {
@@ -322,8 +356,17 @@ export default class RunnerList extends React.Component {
               >
                 <TextField
                   onChange={this.onSearchQueryChange.bind(this)}
-                  floatingLabelText='Search User by E-mail...'
+                  floatingLabelText={'Search Runner...'}
                 />
+                <SelectField
+                  floatingLabelText='SEARCH BY'
+                  value={this.state.searchBy}
+                  onChange={this.handleChangeSearchBy}
+                >
+                  {this.state.searchOptions.map(option => (
+                    <MenuItem key={option.value} value={option.value} primaryText={option.name} />
+                  ))}
+                </SelectField>
                 <div style={{ paddingLeft: 20, width: 40, height: 40 }}>
                   {this.renderSpinner()}
                 </div>
@@ -332,7 +375,7 @@ export default class RunnerList extends React.Component {
             </div>
             <DataTable
               class='user'
-              items={this.state.users}
+              items={this.state.items}
               headers={this.state.headers}
               pCurrent={this.state.pCurrent}
               pDisplay={this.state.pDisplay}

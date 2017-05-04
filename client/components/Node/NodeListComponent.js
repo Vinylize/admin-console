@@ -12,6 +12,7 @@ import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
 import DropDownMenu from 'material-ui/DropDownMenu';
 import MenuItem from 'material-ui/MenuItem';
+import SelectField from 'material-ui/SelectField';
 import DataTable from '../Table/TableComponent';
 
 import {
@@ -35,6 +36,7 @@ export default class NodeList extends React.Component {
       createNodeModalOpen: false,
       bulkModalOpen: false,
       nodes: [],
+      items: [],
       nodeCategory: {},
       c1: -1,
       c2: -1,
@@ -44,6 +46,13 @@ export default class NodeList extends React.Component {
       pTotal: 0,
       sortBy: 'id',
       sortOrder: 'asc',
+      searchBy: 'n',
+      searchOptions: [
+        { name: 'name', value: 'n' },
+        { name: 'address', value: 'addr' },
+        { name: 'phone', value: 'p' }
+      ],
+      isSearching: false,
       headers: [
         { name: 'Image', value: 'imgUrl', size: 3 },
         { name: 'Name', value: 'n', size: 3 },
@@ -63,6 +72,28 @@ export default class NodeList extends React.Component {
 
   componentWillUnmount() {
 
+  }
+
+  onSearchQueryChange(e) {
+    if (e.target.value) {
+      this.setState({
+        items: this.state.nodes.filter((node) => {
+          if (node[this.state.searchBy] && node[this.state.searchBy].match(e.target.value)) return true;
+          return false;
+        })
+      }, () => {
+        this.handleSetTotalPage();
+      });
+      this.setState({ isSearching: true });
+      setTimeout(() => {
+        this.setState({ isSearching: false });
+      }, 4000);
+    } else {
+      this.setState({ items: this.state.nodes }, () => {
+        this.handleSetTotalPage();
+        this.handleSorting(null, this.state.sortBy);
+      });
+    }
   }
 
   getNodeCategoryFromServer = () => client.query(`{
@@ -223,8 +254,8 @@ export default class NodeList extends React.Component {
     if (pCurrent === this.state.pTotal) this.handleLoadData();
   }
 
-  handleSetTotalPage = (itemLength) => {
-    const pTotal = Math.ceil(itemLength / this.state.pDisplay);
+  handleSetTotalPage = () => {
+    const pTotal = Math.ceil(this.state.items.length / this.state.pDisplay);
     if (pTotal !== this.state.pTotal) this.setState({ pTotal });
   }
 
@@ -232,7 +263,7 @@ export default class NodeList extends React.Component {
     const sortOrder = this.state.sortOrder;
     const sortBy = this.state.sortBy;
     this.setState({
-      orders: prop !== 'No' ? this.state.nodes.sort((a, b) => {
+      items: prop !== 'No' ? this.state.items.sort((a, b) => {
         if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
           if (!a[prop]) return -1;
           if (a[prop] > b[prop]) return 1;
@@ -243,11 +274,11 @@ export default class NodeList extends React.Component {
         if (a[prop] < b[prop]) return 1;
         else if (a[prop] > b[prop]) return -1;
         return 0;
-      }) : this.state.nodes.reverse()
+      }) : this.state.items.reverse()
     }, () => {
       if (e) {
-        const nextSortOrder = this.state.sortOrder === 'dsc' ? 'asc' : 'dsc';
-        this.setState({ sortOrder: (this.state.sortBy === prop ? nextSortOrder : 'dsc') });
+        const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
+        this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
         this.setState({ sortBy: prop });
       }
     });
@@ -260,12 +291,18 @@ export default class NodeList extends React.Component {
       refs.node.root.orderByChild('createdAt').limitToFirst(this.state.loadedCurrent).once('value', (data) => {
         if (data.val()) {
           this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) }, () => {
-            this.handleSetTotalPage(this.state.nodes.length);
-            this.handleSorting(null, this.state.sortBy);
+            this.setState({ items: this.state.nodes }, () => {
+              this.handleSetTotalPage();
+              this.handleSorting(null, this.state.sortBy);
+            });
           });
         }
       });
     });
+  }
+
+  handleChangeSearchBy = (e, i, v) => {
+    this.setState({ searchBy: v });
   }
 
   renderSpinner() {
@@ -329,14 +366,22 @@ export default class NodeList extends React.Component {
                   justifyContent: 'flex-end'
                 }}
               >
-                {/* <TextField*/}
-                {/* onChange={this.onSearchQueryChange.bind(this)}*/}
-                {/* floatingLabelText='Search User by E-mail...'*/}
-                {/* />*/}
+                <TextField
+                  onChange={this.onSearchQueryChange.bind(this)}
+                  floatingLabelText={'Search Node...'}
+                />
+                <SelectField
+                  floatingLabelText='SEARCH BY'
+                  value={this.state.searchBy}
+                  onChange={this.handleChangeSearchBy}
+                >
+                  {this.state.searchOptions.map(option => (
+                    <MenuItem key={option.value} value={option.value} primaryText={option.name} />
+                  ))}
+                </SelectField>
                 <div style={{ paddingLeft: 20, width: 40, height: 40 }}>
                   {this.renderSpinner()}
                 </div>
-
               </div>
             </div>
             <div style={{ float: 'clear' }} >
@@ -387,8 +432,8 @@ export default class NodeList extends React.Component {
 
             </div>
             <DataTable
-              class='order'
-              items={this.state.nodes}
+              class='node'
+              items={this.state.items}
               headers={this.state.headers}
               pCurrent={this.state.pCurrent}
               pDisplay={this.state.pDisplay}

@@ -4,6 +4,8 @@ import RaisedButton from 'material-ui/RaisedButton';
 import Paper from 'material-ui/Paper';
 import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
+import MenuItem from 'material-ui/MenuItem';
+import SelectField from 'material-ui/SelectField';
 import DataTable from '../Table/TableComponent';
 
 import { refs } from '../../util/firebase';
@@ -18,13 +20,18 @@ class OrderList extends React.Component {
     this.state = {
       tempOrders: [],
       orders: [],
+      itmes: [],
       selectedKey: 0,
       isSelected: false,
+      searchBy: 'nId',
       isSearching: false,
+      searchOptions: [
+        { name: 'nId', value: 'nId' }
+      ],
       pDisplay: 15,
       pCurrent: 1,
       pTotal: 0,
-      sortBy: 'id',
+      sortBy: 'nId',
       sortOrder: 'asc',
       headers: [
         { name: 'Orderer', value: 'oDd', size: 2 },
@@ -49,11 +56,25 @@ class OrderList extends React.Component {
   }
 
   onSearchQueryChange(e) {
-    this.setState({ isSearching: true });
-    setTimeout(() => {
-      this.setState({ isSearching: false });
-    }, 4000);
-    console.log(e.target.value);
+    if (e.target.value) {
+      this.setState({
+        items: this.state.orders.filter((order) => {
+          if (order[this.state.searchBy] && order[this.state.searchBy].match(e.target.value)) return true;
+          return false;
+        })
+      }, () => {
+        this.handleSetTotalPage();
+      });
+      this.setState({ isSearching: true });
+      setTimeout(() => {
+        this.setState({ isSearching: false });
+      }, 4000);
+    } else {
+      this.setState({ items: this.state.orders }, () => {
+        this.handleSetTotalPage();
+        this.handleSorting(null, this.state.sortBy);
+      });
+    }
   }
 
   handleRowSelection = (keys) => {
@@ -76,8 +97,8 @@ class OrderList extends React.Component {
     if (pCurrent === this.state.pTotal) this.handleLoadData();
   }
 
-  handleSetTotalPage = (itemLength) => {
-    const pTotal = Math.ceil(itemLength / this.state.pDisplay);
+  handleSetTotalPage = () => {
+    const pTotal = Math.ceil(this.state.items.length / this.state.pDisplay);
     if (pTotal !== this.state.pTotal) this.setState({ pTotal });
   }
 
@@ -85,7 +106,7 @@ class OrderList extends React.Component {
     const sortOrder = this.state.sortOrder;
     const sortBy = this.state.sortBy;
     this.setState({
-      orders: prop !== 'No' ? this.state.orders.sort((a, b) => {
+      items: prop !== 'No' ? this.state.items.sort((a, b) => {
         if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
           if (!a[prop]) return -1;
           if (a[prop] > b[prop]) return 1;
@@ -96,7 +117,7 @@ class OrderList extends React.Component {
         if (a[prop] < b[prop]) return 1;
         else if (a[prop] > b[prop]) return -1;
         return 0;
-      }) : this.state.orders.reverse()
+      }) : this.state.items.reverse()
     }, () => {
       if (e) {
         const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
@@ -118,57 +139,66 @@ class OrderList extends React.Component {
           tempOrders: Object.keys(data.val()).map(key => data.val()[key])
         }, () => {
           this.setState({ orders: this.state.tempOrders }, () => {
-            this.handleSetTotalPage(this.state.orders.length);
-            this.orderRootEvents.on('child_added', (order) => {
-              let isIn = false;
-              const len = this.state.orders.length;
-              for (let i = 0; i < len; ++i) {
-                if (this.state.orders[i].id === order.val().id) {
-                  isIn = true;
-                  break;
-                }
-              }
-              if (!isIn) {
-                this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
-                  this.handleSetTotalPage(this.state.orders.length);
-                });
-              }
-            });
-            this.orderRootEvents.on('child_changed', (order) => {
-              let isIn = false;
-              this.setState({
-                orders: this.state.orders.map((o) => {
-                  if (order.child('id').val() === o.id) {
+            this.setState({ items: this.state.orders }, () => {
+              this.handleSetTotalPage();
+              this.orderRootEvents.on('child_added', (order) => {
+                let isIn = false;
+                const len = this.state.orders.length;
+                for (let i = 0; i < len; ++i) {
+                  if (this.state.orders[i].id === order.val().id) {
                     isIn = true;
-                    return order.val();
+                    break;
                   }
-                  return o;
-                })
-              }, () => {
+                }
                 if (!isIn) {
                   this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
-                    this.handleSetTotalPage(this.state.orders.length);
+                    this.handleSetTotalPage();
+                    this.setState({ items: this.state.orders });
                   });
                 }
               });
-            });
-            this.orderRootEvents.on('child_removed', (order) => {
-              this.setState({
-                orders: this.state.orders.filter((o) => {
-                  if (order.child('id').val() === o.id) {
-                    return false;
+              this.orderRootEvents.on('child_changed', (order) => {
+                let isIn = false;
+                this.setState({
+                  orders: this.state.orders.map((o) => {
+                    if (order.child('id').val() === o.id) {
+                      isIn = true;
+                      return order.val();
+                    }
+                    return o;
+                  })
+                }, () => {
+                  if (!isIn) {
+                    this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
+                      this.handleSetTotalPage();
+                      this.setState({ items: this.state.orders });
+                    });
                   }
-                  return true;
-                })
-              }, () => {
-                this.handleSetTotalPage(this.state.orders.length);
+                });
               });
+              this.orderRootEvents.on('child_removed', (order) => {
+                this.setState({
+                  orders: this.state.orders.filter((o) => {
+                    if (order.child('id').val() === o.id) {
+                      return false;
+                    }
+                    return true;
+                  })
+                }, () => {
+                  this.handleSetTotalPage();
+                  this.setState({ items: this.state.orders });
+                });
+              });
+              setTimeout(() => { this.handleSorting(null, this.state.sortBy); }, 1000);
             });
-            setTimeout(() => { this.handleSorting(null, this.state.sortBy); }, 1000);
           });
         });
       });
     });
+  }
+
+  handleChangeSearchBy = (e, i, v) => {
+    this.setState({ searchBy: v });
   }
 
   renderSpinner() {
@@ -225,8 +255,17 @@ class OrderList extends React.Component {
               >
                 <TextField
                   onChange={this.onSearchQueryChange.bind(this)}
-                  floatingLabelText='Search User by E-mail...'
+                  floatingLabelText={'Search Order...'}
                 />
+                <SelectField
+                  floatingLabelText='SEARCH BY'
+                  value={this.state.searchBy}
+                  onChange={this.handleChangeSearchBy}
+                >
+                  {this.state.searchOptions.map(option => (
+                    <MenuItem key={option.value} value={option.value} primaryText={option.name} />
+                  ))}
+                </SelectField>
                 <div style={{ paddingLeft: 20, width: 40, height: 40 }}>
                   {this.renderSpinner()}
                 </div>
@@ -235,7 +274,7 @@ class OrderList extends React.Component {
             </div>
             <DataTable
               class='order'
-              items={this.state.orders}
+              items={this.state.items}
               headers={this.state.headers}
               pCurrent={this.state.pCurrent}
               pDisplay={this.state.pDisplay}
