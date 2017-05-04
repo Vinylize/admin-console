@@ -21,10 +21,12 @@ class OrderList extends React.Component {
       tempOrders: [],
       orders: [],
       itmes: [],
-      selectedKey: 0,
+      selectedKey: -1,
       isSelected: false,
       searchBy: 'nId',
+      searchWord: '',
       isSearching: false,
+      searchedItems: [],
       searchOptions: [
         { name: 'nId', value: 'nId' }
       ],
@@ -56,23 +58,27 @@ class OrderList extends React.Component {
   }
 
   onSearchQueryChange(e) {
-    if (e.target.value) {
+    this.handleSearching(e.target.value);
+  }
+
+  handleSearching = (word) => {
+    if (word) {
       this.setState({
-        items: this.state.orders.filter((order) => {
-          if (order[this.state.searchBy] && order[this.state.searchBy].match(e.target.value)) return true;
+        searchedItems: this.state.items.filter((item) => {
+          if (item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
           return false;
-        })
+        }),
+        isSelected: false,
+        isSearching: true,
+        searchWord: word,
       }, () => {
-        this.handleSetTotalPage();
+        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
+        this.handleSetTotalPage(this.state.searchedItems.length);
       });
-      this.setState({ isSearching: true });
-      setTimeout(() => {
-        this.setState({ isSearching: false });
-      }, 4000);
     } else {
-      this.setState({ items: this.state.orders }, () => {
-        this.handleSetTotalPage();
-        this.handleSorting(null, this.state.sortBy);
+      this.setState({ isSearching: false }, () => {
+        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
+        this.handleSetTotalPage(this.state.items.length);
       });
     }
   }
@@ -94,11 +100,12 @@ class OrderList extends React.Component {
   handleSetPage = (pCurrent) => {
     this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
     if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
-    if (pCurrent === this.state.pTotal) this.handleLoadData();
+    if ((pCurrent === this.state.pTotal) && !this.state.isSearching) this.handleLoadData();
   }
 
-  handleSetTotalPage = () => {
-    const pTotal = Math.ceil(this.state.items.length / this.state.pDisplay);
+  handleSetTotalPage = (length) => {
+    const pTotal = Math.ceil(length / this.state.pDisplay);
+    if (pTotal < this.state.pCurrent) this.handleSetPage(1);
     if (pTotal !== this.state.pTotal) this.setState({ pTotal });
   }
 
@@ -122,6 +129,7 @@ class OrderList extends React.Component {
         this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
         this.setState({ sortBy: prop });
       }
+      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
     });
   }
 
@@ -138,7 +146,7 @@ class OrderList extends React.Component {
         }, () => {
           this.setState({ orders: this.state.tempOrders }, () => {
             this.setState({ items: this.state.orders }, () => {
-              this.handleSetTotalPage();
+              this.handleSetTotalPage(this.state.items.length);
               this.orderRootEvents.on('child_added', (order) => {
                 let isIn = false;
                 const len = this.state.orders.length;
@@ -150,7 +158,7 @@ class OrderList extends React.Component {
                 }
                 if (!isIn) {
                   this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
-                    this.handleSetTotalPage();
+                    this.handleSetTotalPage(this.state.orders.length);
                     this.setState({ items: this.state.orders });
                   });
                 }
@@ -168,7 +176,7 @@ class OrderList extends React.Component {
                 }, () => {
                   if (!isIn) {
                     this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
-                      this.handleSetTotalPage();
+                      this.handleSetTotalPage(this.state.orders.length);
                       this.setState({ items: this.state.orders });
                     });
                   }
@@ -183,11 +191,13 @@ class OrderList extends React.Component {
                     return true;
                   })
                 }, () => {
-                  this.handleSetTotalPage();
+                  this.handleSetTotalPage(this.state.orders.length);
                   this.setState({ items: this.state.orders });
                 });
               });
-              setTimeout(() => { this.handleSorting(null, this.state.sortBy); }, 1000);
+              setTimeout(() => {
+                this.handleSorting(null, this.state.sortBy);
+              }, 500);
             });
           });
         });
@@ -196,7 +206,9 @@ class OrderList extends React.Component {
   }
 
   handleChangeSearchBy = (e, i, v) => {
-    this.setState({ searchBy: v });
+    this.setState({ searchBy: v }, () => {
+      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+    });
   }
 
   renderSpinner() {
@@ -207,6 +219,7 @@ class OrderList extends React.Component {
   }
 
   render() {
+    const items = this.state.isSearching ? this.state.searchedItems : this.state.items;
     return (
       <div>
         <div style={{ width: '100%', margin: 'auto' }}>
@@ -272,7 +285,7 @@ class OrderList extends React.Component {
             </div>
             <DataTable
               class='order'
-              items={this.state.items}
+              items={items}
               headers={this.state.headers}
               pCurrent={this.state.pCurrent}
               pDisplay={this.state.pDisplay}

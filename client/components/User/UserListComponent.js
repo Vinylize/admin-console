@@ -33,9 +33,11 @@ class UserList extends React.Component {
       tempUsers: [],
       users: [],
       items: [],
-      selectedKey: 0,
+      selectedKey: -1,
       isSelected: false,
       searchBy: 'e',
+      searchWord: '',
+      searchedItems: [],
       isSearching: false,
       searchOptions: [
         { name: 'Email', value: 'e' },
@@ -69,23 +71,27 @@ class UserList extends React.Component {
   }
 
   onSearchQueryChange(e) {
-    if (e.target.value) {
+    this.handleSearching(e.target.value);
+  }
+
+  handleSearching = (word) => {
+    if (word) {
       this.setState({
-        items: this.state.users.filter((user) => {
-          if (user[this.state.searchBy] && user[this.state.searchBy].match(e.target.value)) return true;
+        searchedItems: this.state.items.filter((item) => {
+          if (item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
           return false;
-        })
+        }),
+        isSelected: false,
+        isSearching: true,
+        searchWord: word,
       }, () => {
-        this.handleSetTotalPage();
+        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
+        this.handleSetTotalPage(this.state.searchedItems.length);
       });
-      this.setState({ isSearching: true });
-      setTimeout(() => {
-        this.setState({ isSearching: false });
-      }, 4000);
     } else {
-      this.setState({ items: this.state.users }, () => {
-        this.handleSetTotalPage();
-        this.handleSorting(null, this.state.sortBy);
+      this.setState({ isSearching: false }, () => {
+        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
+        this.handleSetTotalPage(this.state.items.length);
       });
     }
   }
@@ -120,11 +126,7 @@ class UserList extends React.Component {
         if (isB) alert('The user is unblocked!');
         else alert('Ther user is blocked!');
         setTimeout(() => {
-          this.setState({ users: [] });
-          this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
-            if (data.child('permission').val() === null && data.child('id').val()) this.setState({ users: this.state.users.concat(data.val()) });
-          });
-          if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
+          this.handleLoadData();
         }, 100);
       })
       .catch();
@@ -150,8 +152,9 @@ class UserList extends React.Component {
     if (pCurrent === this.state.pTotal) this.handleLoadData();
   }
 
-  handleSetTotalPage = () => {
-    const pTotal = Math.ceil(this.state.items.length / this.state.pDisplay);
+  handleSetTotalPage = (length) => {
+    const pTotal = Math.ceil(length / this.state.pDisplay);
+    if (pTotal < this.state.pCurrent) this.handleSetPage(1);
     if (pTotal !== this.state.pTotal) this.setState({ pTotal });
   }
 
@@ -175,6 +178,7 @@ class UserList extends React.Component {
         this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
         this.setState({ sortBy: prop });
       }
+      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
     });
   }
 
@@ -207,7 +211,7 @@ class UserList extends React.Component {
                 if (user.child('permission').val() !== 'admin' && user.child('id').val() && !isIn) {
                   this.setState({ users: this.state.users.concat(user.val()) }, () => {
                     this.setState({ items: this.state.users });
-                    this.handleSetTotalPage();
+                    this.handleSetTotalPage(this.state.items.length);
                   });
                 }
               });
@@ -225,7 +229,7 @@ class UserList extends React.Component {
                   if (user.child('permission').val() !== 'admin' && user.child('id').val() && !isIn) {
                     this.setState({ users: this.state.users.concat(user.val()) }, () => {
                       this.setState({ items: this.state.users });
-                      this.handleSetTotalPage();
+                      this.handleSetTotalPage(this.state.items.length);
                     });
                   }
                 });
@@ -240,10 +244,12 @@ class UserList extends React.Component {
                   })
                 }, () => {
                   this.setState({ items: this.state.users });
-                  this.handleSetTotalPage();
+                  this.handleSetTotalPage(this.state.items.length);
                 });
               });
-              setTimeout(() => { this.handleSorting(null, this.state.sortBy); }, 1000);
+              setTimeout(() => {
+                this.handleSorting(null, this.state.sortBy);
+              }, 500);
             });
           });
         });
@@ -252,7 +258,9 @@ class UserList extends React.Component {
   }
 
   handleChangeSearchBy = (e, i, v) => {
-    this.setState({ searchBy: v });
+    this.setState({ searchBy: v }, () => {
+      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+    });
   }
 
   renderSpinner() {
@@ -275,6 +283,7 @@ class UserList extends React.Component {
         onTouchTap={this.handleCreateUserModalClose}
       />,
     ];
+    const items = this.state.isSearching ? this.state.searchedItems : this.state.items;
     return (
       <div>
         <div style={{ width: '100%', margin: 'auto' }}>
@@ -290,7 +299,7 @@ class UserList extends React.Component {
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
                 <RaisedButton
-                  label={this.state.isSelected && this.state.items.length > 0 ? (<Link to={`/user/${this.state.items[this.state.selectedKey].id}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
+                  label={this.state.isSelected && items.length > 0 ? (<Link to={`/user/${items[this.state.selectedKey].id}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
                   primary
                   disabled={!this.state.isSelected}
                   style={{
@@ -300,21 +309,21 @@ class UserList extends React.Component {
                 <RaisedButton
                   label='Block'
                   secondary
-                  disabled={!this.state.isSelected || this.state.items[this.state.selectedKey].isB}
+                  disabled={!this.state.isSelected || items[this.state.selectedKey].isB}
                   style={{
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(e) => { this.handleBlockUser(e, this.state.items[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleBlockUser(e, items[this.state.selectedKey].id, false); }}
                 />
                 <RaisedButton
                   label='Unblock'
                   primary
-                  disabled={!this.state.isSelected || !this.state.items[this.state.selectedKey].isB}
+                  disabled={!this.state.isSelected || !items[this.state.selectedKey].isB}
                   style={{
                     margin: 12,
                   }}
-                  onClick={(e) => { this.handleBlockUser(e, this.state.items[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleBlockUser(e, items[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='APPROVE'
@@ -364,7 +373,7 @@ class UserList extends React.Component {
             </div>
             <DataTable
               class='user'
-              items={this.state.items}
+              items={items}
               headers={this.state.headers}
               pCurrent={this.state.pCurrent}
               pDisplay={this.state.pDisplay}

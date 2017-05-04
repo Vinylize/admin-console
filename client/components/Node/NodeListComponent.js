@@ -41,18 +41,22 @@ export default class NodeList extends React.Component {
       c1: -1,
       c2: -1,
       c3: -1,
+      isSelected: false,
+      selectedKey: -1,
       pDisplay: 15,
       pCurrent: 1,
       pTotal: 0,
       sortBy: 'id',
       sortOrder: 'dsc',
       searchBy: 'n',
+      searchWord: '',
+      isSearching: false,
+      searchedItems: [],
       searchOptions: [
         { name: 'name', value: 'n' },
         { name: 'address', value: 'addr' },
         { name: 'phone', value: 'p' }
       ],
-      isSearching: false,
       headers: [
         { name: 'Image', value: 'imgUrl', size: 3 },
         { name: 'Name', value: 'n', size: 3 },
@@ -75,25 +79,7 @@ export default class NodeList extends React.Component {
   }
 
   onSearchQueryChange(e) {
-    if (e.target.value) {
-      this.setState({
-        items: this.state.nodes.filter((node) => {
-          if (node[this.state.searchBy] && node[this.state.searchBy].match(e.target.value)) return true;
-          return false;
-        })
-      }, () => {
-        this.handleSetTotalPage();
-      });
-      this.setState({ isSearching: true });
-      setTimeout(() => {
-        this.setState({ isSearching: false });
-      }, 4000);
-    } else {
-      this.setState({ items: this.state.nodes }, () => {
-        this.handleSetTotalPage();
-        this.handleSorting(null, this.state.sortBy);
-      });
-    }
+    this.handleSearching(e.target.value);
   }
 
   getNodeCategoryFromServer = () => client.query(`{
@@ -124,6 +110,28 @@ export default class NodeList extends React.Component {
     }
     return { c1, c2 };
   };
+
+  handleSearching = (word) => {
+    if (word) {
+      this.setState({
+        searchedItems: this.state.items.filter((item) => {
+          if (item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
+          return false;
+        }),
+        isSelected: false,
+        isSearching: true,
+        searchWord: word,
+      }, () => {
+        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
+        this.handleSetTotalPage(this.state.searchedItems.length);
+      });
+    } else {
+      this.setState({ isSearching: false }, () => {
+        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
+        this.handleSetTotalPage(this.state.items.length);
+      });
+    }
+  }
 
   initList() {
     this.handleLoadData();
@@ -254,8 +262,9 @@ export default class NodeList extends React.Component {
     if (pCurrent === this.state.pTotal) this.handleLoadData();
   }
 
-  handleSetTotalPage = () => {
-    const pTotal = Math.ceil(this.state.items.length / this.state.pDisplay);
+  handleSetTotalPage = (length) => {
+    const pTotal = Math.ceil(length / this.state.pDisplay);
+    if (pTotal < this.state.pCurrent) this.handleSetPage(1);
     if (pTotal !== this.state.pTotal) this.setState({ pTotal });
   }
 
@@ -279,6 +288,7 @@ export default class NodeList extends React.Component {
         this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
         this.setState({ sortBy: prop });
       }
+      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
     });
   }
 
@@ -336,7 +346,7 @@ export default class NodeList extends React.Component {
         onTouchTap={this.handleCreateNodeFromBulkModalCreate}
       />,
     ];
-
+    const items = this.state.isSearching ? this.state.searchedItems : this.state.items;
     return (
       <div>
         <div style={{ width: '100%', margin: 'auto' }}>
@@ -431,7 +441,7 @@ export default class NodeList extends React.Component {
             </div>
             <DataTable
               class='node'
-              items={this.state.items}
+              items={items}
               headers={this.state.headers}
               pCurrent={this.state.pCurrent}
               pDisplay={this.state.pDisplay}

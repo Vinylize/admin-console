@@ -23,10 +23,12 @@ export default class RunnerJudgeList extends React.Component {
       idImageModalOpen: false,
       users: [],
       items: [],
-      selectedKey: 0,
+      selectedKey: -1,
       isSelected: false,
       searchBy: 'e',
+      searchWord: '',
       isSearching: false,
+      searchedItems: [],
       searchOptions: [
         { name: 'Email', value: 'e' },
         { name: 'Name', value: 'n' },
@@ -59,23 +61,27 @@ export default class RunnerJudgeList extends React.Component {
   }
 
   onSearchQueryChange(e) {
-    if (e.target.value) {
+    this.handleSearching(e.target.value);
+  }
+
+  handleSearching = (word) => {
+    if (word) {
       this.setState({
-        items: this.state.users.filter((user) => {
-          if (user[this.state.searchBy] && user[this.state.searchBy].match(e.target.value)) return true;
+        searchedItems: this.state.items.filter((item) => {
+          if (item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
           return false;
-        })
+        }),
+        isSelected: false,
+        isSearching: true,
+        searchWord: word,
       }, () => {
-        this.handleSetTotalPage();
+        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
+        this.handleSetTotalPage(this.state.searchedItems.length);
       });
-      this.setState({ isSearching: true });
-      setTimeout(() => {
-        this.setState({ isSearching: false });
-      }, 4000);
     } else {
-      this.setState({ items: this.state.users }, () => {
-        this.handleSetTotalPage();
-        this.handleSorting(null, this.state.sortBy);
+      this.setState({ isSearching: false }, () => {
+        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
+        this.handleSetTotalPage(this.state.items.length);
       });
     }
   }
@@ -114,7 +120,6 @@ export default class RunnerJudgeList extends React.Component {
         else alert('The user is disapproved!');
         setTimeout(() => {
           this.handleLoadData();
-          if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
         }, 100);
       })
       .catch();
@@ -143,7 +148,6 @@ export default class RunnerJudgeList extends React.Component {
         else alert('Ther user is blocked!');
         setTimeout(() => {
           this.handleLoadData();
-          if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
         }, 100);
       })
       .catch();
@@ -153,7 +157,7 @@ export default class RunnerJudgeList extends React.Component {
     this.setState({ selectedKey: 0 }, () => {
       if (keys.length > 0) {
         keys.map((key) => {
-          this.setState({ selectedKey: (key + (this.state.pCurrent - 1)) * this.state.pDisplay });
+          this.setState({ selectedKey: key + ((this.state.pCurrent - 1) * this.state.pDisplay) });
           return key;
         });
         this.setState({ isSelected: true });
@@ -169,8 +173,9 @@ export default class RunnerJudgeList extends React.Component {
     if (pCurrent === this.state.pTotal) this.handleLoadData();
   }
 
-  handleSetTotalPage = () => {
-    const pTotal = Math.ceil(this.state.items.length / this.state.pDisplay);
+  handleSetTotalPage = (itemLength) => {
+    const pTotal = Math.ceil(itemLength / this.state.pDisplay);
+    if (pTotal < this.state.pCurrent) this.handleSetPage(1);
     if (pTotal !== this.state.pTotal) this.setState({ pTotal });
   }
 
@@ -194,6 +199,7 @@ export default class RunnerJudgeList extends React.Component {
         this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
         this.setState({ sortBy: prop });
       }
+      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
     });
   }
 
@@ -262,7 +268,9 @@ export default class RunnerJudgeList extends React.Component {
                   this.handleSetTotalPage();
                 });
               });
-              setTimeout(() => { this.handleSorting(null, this.state.sortBy); }, 1000);
+              setTimeout(() => {
+                this.handleSorting(null, this.state.sortBy);
+              }, 500);
             });
           });
         });
@@ -271,7 +279,9 @@ export default class RunnerJudgeList extends React.Component {
   }
 
   handleChangeSearchBy = (e, i, v) => {
-    this.setState({ searchBy: v });
+    this.setState({ searchBy: v }, () => {
+      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+    });
   }
 
   renderSpinner() {
@@ -282,6 +292,7 @@ export default class RunnerJudgeList extends React.Component {
   }
 
   render() {
+    const items = this.state.isSearching ? this.state.searchedItems : this.state.items;
     return (
       <div>
         <div style={{ width: '100%', margin: 'auto' }}>
@@ -292,7 +303,7 @@ export default class RunnerJudgeList extends React.Component {
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
                 <RaisedButton
-                  label={this.state.isSelected && this.state.items.length > 0 ? (<Link to={`/runner/${this.state.items[this.state.selectedKey].id}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
+                  label={this.state.isSelected && items.length > 0 ? (<Link to={`/runner/${items[this.state.selectedKey].id}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
                   primary
                   disabled={!this.state.isSelected}
                   style={{
@@ -302,21 +313,21 @@ export default class RunnerJudgeList extends React.Component {
                 <RaisedButton
                   label='Block'
                   secondary
-                  disabled={!this.state.isSelected || this.state.items[this.state.selectedKey].isB}
+                  disabled={!this.state.isSelected || items[this.state.selectedKey].isB}
                   style={{
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(e) => { this.handleBlockUser(e, this.state.items[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleBlockUser(e, items[this.state.selectedKey].id, false); }}
                 />
                 <RaisedButton
                   label='Unblock'
                   primary
-                  disabled={!this.state.isSelected || !this.state.items[this.state.selectedKey].isB}
+                  disabled={!this.state.isSelected || !items[this.state.selectedKey].isB}
                   style={{
                     margin: 12,
                   }}
-                  onClick={(e) => { this.handleBlockUser(e, this.state.items[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleBlockUser(e, items[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='APPROVE'
@@ -327,7 +338,7 @@ export default class RunnerJudgeList extends React.Component {
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(e) => { this.handleApproveRunner(e, this.state.items[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleApproveRunner(e, items[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='DISAPPROVE'
@@ -336,7 +347,7 @@ export default class RunnerJudgeList extends React.Component {
                   style={{
                     margin: 12
                   }}
-                  onClick={(e) => { this.handleApproveRunner(e, this.state.items[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleApproveRunner(e, items[this.state.selectedKey].id, false); }}
                 />
               </div>
               <div
@@ -369,7 +380,7 @@ export default class RunnerJudgeList extends React.Component {
             </div>
             <DataTable
               class='user'
-              items={this.state.items}
+              items={items}
               headers={this.state.headers}
               pCurrent={this.state.pCurrent}
               pDisplay={this.state.pDisplay}

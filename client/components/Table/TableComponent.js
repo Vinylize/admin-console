@@ -38,9 +38,10 @@ export default class DataTable extends React.Component {
     super(props);
     this.state = {
       idImageModalOpen: false,
-      idUrl: ''
+      idUrl: '',
     };
   }
+
 
   handleIdImageModalOpen = (e, idUrl) => {
     this.setState({ idImageModalOpen: true });
@@ -164,4 +165,6 @@ export default class DataTable extends React.Component {
 DataTable.defaultProps = {
   items: [],
   headers: [],
+  searchBy: 'id',
+  searchWord: ''
 };
