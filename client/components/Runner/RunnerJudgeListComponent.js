@@ -181,11 +181,13 @@ export default class RunnerJudgeList extends React.Component {
       items: prop !== 'No' ? this.state.items.sort((a, b) => {
         if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
           if (!a[prop]) return -1;
+          if (!b[prop]) return 1;
           if (a[prop] > b[prop]) return 1;
           else if (a[prop] < b[prop]) return -1;
           return 0;
         }
         if (!a[prop]) return 1;
+        if (!b[prop]) return -1;
         if (a[prop] < b[prop]) return 1;
         else if (a[prop] > b[prop]) return -1;
         return 0;
