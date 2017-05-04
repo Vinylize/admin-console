@@ -83,11 +83,10 @@ class OrderList extends React.Component {
                 const sortBy = this.state.sortBy;
                 if (this.state.sortOrder === 'asc') return this.ascSorting(a[sortBy], b[sortBy]);
                 return this.dscSorting(a[sortBy], b[sortBy]);
-              }) : [],
-              isSelected: false
+              }) : []
             }, () => {
               this.setState({ isSearching: true });
-              if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
+              this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
               this.handleSetTotalPage(this.state.searchedItems.length);
             });
           });
@@ -97,12 +96,10 @@ class OrderList extends React.Component {
               searchedItems: this.state.searchedItems.map((item) => {
                 if (item.id === data.val().id) return data.val();
                 return item;
-              }),
-              isSelected: false
+              })
             }, () => {
-              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-              if (this.state.isSearching) this.handleSetTotalPage(len);
+              this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
+              this.handleSetTotalPage(this.state.searchedItems.length);
             });
           });
 
@@ -111,27 +108,23 @@ class OrderList extends React.Component {
               searchedItems: this.state.searchedItems.filter((item) => {
                 if (item.id === data.val().id) return false;
                 return true;
-              }),
-              isSelected: false
+              })
             }, () => {
-              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-              if (this.state.isSearching) this.handleSetTotalPage(len);
+              this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
+              this.handleSetTotalPage(this.state.searchedItems.length);
             });
           });
         });
       });
     } else {
-      setTimeout(() => {
-        this.setState({ isSearching: false, sLoadedCurrent: 0 }, () => {
-          if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
-          if (this.state.searchedItems.length) {
-            refs.order.root.off('child_changed', this.orderSearchedChangedEvents);
-            refs.order.root.off('child_removed', this.orderSearchedRemovedEvents);
-          }
-          this.handleSetTotalPage(this.state.items.length);
-        });
-      }, 100);
+      this.setState({ isSearching: false, sLoadedCurrent: 0 }, () => {
+        this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
+        this.handleSetTotalPage(this.state.items.length);
+        if (this.state.searchedItems.length) {
+          refs.order.root.off('child_changed', this.orderSearchedChangedEvents);
+          refs.order.root.off('child_removed', this.orderSearchedRemovedEvents);
+        }
+      });
     }
   }
 
@@ -217,6 +210,7 @@ class OrderList extends React.Component {
               }
               if (!isIn) {
                 this.setState({ items: this.state.items.concat(order.val()) }, () => {
+                  this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
                   if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
                 });
               }
@@ -230,9 +224,8 @@ class OrderList extends React.Component {
                 }),
                 isSelected: false
               }, () => {
-                const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-                if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-                if (!this.state.isSearching) this.handleSetTotalPage(len);
+                this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
+                if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
               });
             });
 
@@ -244,9 +237,8 @@ class OrderList extends React.Component {
                 }),
                 isSelected: false
               }, () => {
-                const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-                if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-                if (!this.state.isSearching) this.handleSetTotalPage(len);
+                this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
+                if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
               });
             });
 
@@ -327,6 +319,10 @@ class OrderList extends React.Component {
                   floatingLabelText='SEARCH BY'
                   value={this.state.searchBy}
                   onChange={this.handleChangeSearchBy}
+                  style={{
+                    width: 180,
+                    marginLeft: 20
+                  }}
                 >
                   {this.state.searchOptions.map(option => (
                     <MenuItem key={option.value} value={option.value} primaryText={option.name} />
