@@ -14,7 +14,7 @@ import {
   refs
 } from '../../util/firebase';
 
-const uploadBaseUrl = 'http://localhost:5002/graphql?query=';
+const uploadBaseUrl = 'https://api.yetta.co/graphql?query=';
 
 export default class RunnerJudgeList extends React.Component {
   constructor(props) {
