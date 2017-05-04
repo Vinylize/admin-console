@@ -87,6 +87,7 @@
     "lokka": "^1.7.0",
     "lokka-transport-http": "^1.6.1",
     "material-ui": "^0.17.0",
+    "material-ui-pagination": "^1.0.1",
     "moment": "^2.17.1",
     "normalize.css": "^5.0.0",
     "postcss-loader": "^1.2.1",
