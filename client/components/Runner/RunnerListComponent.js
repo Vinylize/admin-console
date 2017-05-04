@@ -14,7 +14,7 @@ import {
   refs
 } from '../../util/firebase';
 
-const uploadBaseUrl = 'https://api.yetta.co/graphql?query=';
+const uploadBaseUrl = 'http://localhost:5002/graphql?query=';
 
 export default class RunnerList extends React.Component {
   constructor(props) {
@@ -38,7 +38,7 @@ export default class RunnerList extends React.Component {
       pDisplay: 15,
       pCurrent: 1,
       pTotal: 0,
-      sortBy: 'id',
+      sortBy: 'cAt',
       sortOrder: 'dsc',
       headers: [
         { name: 'Email', value: 'e', size: 3 },
@@ -48,8 +48,9 @@ export default class RunnerList extends React.Component {
         { name: 'CreatedAt', value: 'cAt', size: 3 },
         { name: 'State', value: 'isB', size: 2 }
       ],
-      loadedAtOnce: 100,
-      loadedCurrent: 0
+      loadedAtOnce: 500,
+      loadedCurrent: 0,
+      sLoadedCurrent: 0
     };
   }
 
@@ -57,33 +58,84 @@ export default class RunnerList extends React.Component {
     this.handleLoadData();
   }
 
-  componentWillUnmount() {
-    refs.user.root.off();
+  onSearchQueryKeyPress(e) {
+    if (e.charCode === 13) this.handleSearching(e.target.value);
   }
 
   onSearchQueryChange(e) {
-    this.handleSearching(e.target.value);
+    if (!e.target.value) this.handleSearching(null);
   }
 
   handleSearching = (word) => {
     if (word) {
-      this.setState({
-        searchedItems: this.state.items.filter((item) => {
-          if (item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
-          return false;
-        }),
-        isSelected: false,
-        isSearching: true,
-        searchWord: word,
-      }, () => {
-        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
-        this.handleSetTotalPage(this.state.searchedItems.length);
+      this.setState({ sLoadedCurrent: this.state.sLoadedCurrent + this.state.loadedAtOnce }, () => {
+        this.setState({ searchWord: word }, () => {
+          const searchQuery = refs.user.root.orderByChild('isRA').equalTo(true).limitToFirst(this.state.sLoadedCurrent);
+
+          searchQuery.once('value')
+          .then((data) => {
+            this.setState({
+              searchedItems: data.val() ? Object.keys(data.val()).map(key => data.val()[key])
+              .filter((item) => {
+                if (item.id && item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
+                return false;
+              }).sort((a, b) => {
+                const sortBy = this.state.sortBy;
+                if (this.state.sortOrder === 'asc') return this.ascSorting(a[sortBy], b[sortBy]);
+                return this.dscSorting(a[sortBy], b[sortBy]);
+              }) : [],
+              isSelected: false
+            }, () => {
+              this.setState({ isSearching: true });
+              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+              this.handleSetTotalPage(len);
+            });
+          });
+
+          this.userSearchedChangedEvents = searchQuery.on('child_changed', (data) => {
+            this.setState({
+              searchedItems: this.state.searchedItems.map((item) => {
+                if (item.id === data.val().id) return data.val();
+                return item;
+              }).filter((item) => {
+                if (!item.isRA) return false;
+                return true;
+              }),
+              isSelected: false
+            }, () => {
+              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+              if (this.state.isSearching) this.handleSetTotalPage(len);
+            });
+          });
+
+          this.userSearchedRemovedEvents = searchQuery.on('child_removed', (data) => {
+            this.setState({
+              searchedItems: this.state.searchedItems.filter((item) => {
+                if (item.id === data.val().id) return false;
+                return true;
+              }),
+              isSelected: false
+            }, () => {
+              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+              if (this.state.isSearching) this.handleSetTotalPage(len);
+            });
+          });
+        });
       });
     } else {
-      this.setState({ isSearching: false }, () => {
-        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
-        this.handleSetTotalPage(this.state.items.length);
-      });
+      setTimeout(() => {
+        this.setState({ isSearching: false, sLoadedCurrent: 0 }, () => {
+          if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
+          if (this.state.searchedItems.length) {
+            refs.user.root.off('child_changed', this.userSearchedChangedEvents);
+            refs.user.root.off('child_removed', this.userSearchedRemovedEvents);
+          }
+          this.handleSetTotalPage(this.state.items.length);
+        });
+      }, 100);
     }
   }
 
@@ -117,7 +169,8 @@ export default class RunnerList extends React.Component {
         }
         alert('The user is disapproved!');
         setTimeout(() => {
-          this.handleLoadData();
+          const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+          if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
         }, 100);
       })
       .catch();
@@ -145,7 +198,8 @@ export default class RunnerList extends React.Component {
         if (isB) alert('The user is unblocked!');
         else alert('Ther user is blocked!');
         setTimeout(() => {
-          this.handleLoadData();
+          const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+          if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
         }, 100);
       })
       .catch();
@@ -168,7 +222,10 @@ export default class RunnerList extends React.Component {
   handleSetPage = (pCurrent) => {
     this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
     if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
-    if (pCurrent === this.state.pTotal) this.handleLoadData();
+    if (pCurrent === this.state.pTotal) {
+      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+      else this.handleLoadData();
+    }
   }
 
   handleSetTotalPage = (itemLength) => {
@@ -180,96 +237,95 @@ export default class RunnerList extends React.Component {
   handleSorting = (e, prop) => {
     const sortOrder = this.state.sortOrder;
     const sortBy = this.state.sortBy;
-    this.setState({
-      items: prop !== 'No' ? this.state.items.sort((a, b) => {
-        if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
-          if (a[prop] > b[prop] || !a[prop]) return 1;
-          else if (a[prop] < b[prop] || !b[prop]) return -1;
-          return 0;
-        }
-        if (a[prop] < b[prop] || !b[prop]) return 1;
-        else if (a[prop] > b[prop] || !a[prop]) return -1;
-        return 0;
-      }) : this.state.items.reverse()
-    }, () => {
-      if (e) {
-        const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
-        this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
-        this.setState({ sortBy: prop });
-      }
-      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
-    });
+    if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
+      this.setState({ items: this.state.items.sort((a, b) => this.dscSorting(a[prop], b[prop])) });
+      this.setState({ searchedItems: this.state.searchedItems.sort((a, b) => this.dscSorting(a[prop], b[prop])) });
+    } else {
+      this.setState({ items: this.state.items.sort((a, b) => this.ascSorting(a[prop], b[prop])) });
+      this.setState({ searchedItems: this.state.searchedItems.sort((a, b) => this.ascSorting(a[prop], b[prop])) });
+    }
+    if (e) {
+      const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
+      this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
+      this.setState({ sortBy: prop });
+    }
+  }
+
+  ascSorting = (a, b) => {
+    if (a > b || !b) return 1;
+    else if (a < b || !a) return -1;
+    return 0;
+  }
+
+  dscSorting = (a, b) => {
+    if (a > b || !b) return -1;
+    else if (a < b || !a) return 1;
+    return 0;
   }
 
   handleLoadData = () => {
     this.setState({
       loadedCurrent: this.state.loadedCurrent + this.state.loadedAtOnce
     }, () => {
-      this.userRootEvents = refs.user.root.orderByKey().limitToFirst(this.state.loadedCurrent);
-      this.userRootEvents.once('value')
+      const userLoadQuery = refs.user.root.orderByChild('isRA').equalTo(true).limitToFirst(this.state.loadedCurrent);
+      userLoadQuery.once('value')
       .then((data) => {
         this.setState({
-          tempUsers: Object.keys(data.val()).map(key => data.val()[key])
-          .filter((user) => {
-            if (user.isRA === true && user.id) return true;
-            return false;
-          })
+          tempUsers: data.val() ? Object.keys(data.val()).map(key => data.val()[key]) : []
         }, () => {
-          this.setState({ users: this.state.tempUsers }, () => {
-            this.setState({ items: this.state.users }, () => {
-              this.handleSetTotalPage(this.state.users.length);
-              this.userRootEvents.on('child_added', (user) => {
-                let isIn = false;
-                const len = this.state.users.length;
-                for (let i = 0; i < len; ++i) {
-                  if (this.state.users[i].id === user.val().id) {
-                    isIn = true;
-                    break;
-                  }
+          this.setState({ items: this.state.tempUsers }, () => {
+            if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
+
+            this.userAddedEvents = userLoadQuery.on('child_added', (user) => {
+              let isIn = false;
+              const len = this.state.items.length;
+              for (let i = 0; i < len; ++i) {
+                if (this.state.items[i].id === user.val().id) {
+                  isIn = true;
+                  break;
                 }
-                if (user.child('isRA').val() === true && user.child('id').val() && !isIn) {
-                  this.setState({ users: this.state.users.concat(user.val()) }, () => {
-                    this.setState({ items: this.state.users });
-                    this.handleSetTotalPage();
-                  });
-                }
-              });
-              this.userRootEvents.on('child_changed', (user) => {
-                let isIn = false;
-                this.setState({
-                  users: this.state.users.map((u) => {
-                    if (user.child('id').val() === u.id) {
-                      isIn = true;
-                      return user.val();
-                    }
-                    return u;
-                  })
-                }, () => {
-                  if (user.child('isRA').val() === true && user.child('id').val() && !isIn) {
-                    this.setState({ users: this.state.users.concat(user.val()) }, () => {
-                      this.setState({ items: this.state.users });
-                      this.handleSetTotalPage();
-                    });
-                  }
+              }
+              if (!isIn && user.child('isRA').val() === true) {
+                this.setState({ items: this.state.items.concat(user.val()) }, () => {
+                  if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
                 });
-              });
-              this.userRootEvents.on('child_removed', (user) => {
-                this.setState({
-                  users: this.state.users.filter((o) => {
-                    if (user.child('id').val() === o.id) {
-                      return false;
-                    }
-                    return true;
-                  })
-                }, () => {
-                  this.setState({ items: this.state.users });
-                  this.handleSetTotalPage();
-                });
-              });
-              setTimeout(() => {
-                this.handleSorting(null, this.state.sortBy);
-              }, 500);
+              }
             });
+
+            this.userChangedEvents = userLoadQuery.on('child_changed', (user) => {
+              this.setState({
+                items: this.state.items.map((item) => {
+                  if (user.child('id').val() === item.id) return user.val();
+                  return item;
+                }).filter((item) => {
+                  if (!item.isRA) return false;
+                  return true;
+                }),
+                isSelected: false
+              }, () => {
+                const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+                if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+                if (!this.state.isSearching) this.handleSetTotalPage(len);
+              });
+            });
+
+            this.userRemovedEvents = userLoadQuery.on('child_removed', (user) => {
+              this.setState({
+                items: this.state.items.filter((o) => {
+                  if (user.child('id').val() === o.id) return false;
+                  return true;
+                }),
+                isSelected: false
+              }, () => {
+                const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+                if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
+                if (!this.state.isSearching) this.handleSetTotalPage(len);
+              });
+            });
+
+            setTimeout(() => {
+              this.handleSorting(null, this.state.sortBy);
+            }, 100);
           });
         });
       });
@@ -278,7 +334,7 @@ export default class RunnerList extends React.Component {
 
   handleChangeSearchBy = (e, i, v) => {
     this.setState({ searchBy: v }, () => {
-      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+      // if (this.state.isSearching) this.handleSearching(this.state.searchWord);
     });
   }
 
@@ -358,6 +414,7 @@ export default class RunnerList extends React.Component {
                 }}
               >
                 <TextField
+                  onKeyPress={this.onSearchQueryKeyPress.bind(this)}
                   onChange={this.onSearchQueryChange.bind(this)}
                   floatingLabelText={'Search Runner...'}
                 />
@@ -373,7 +430,7 @@ export default class RunnerList extends React.Component {
                 <div style={{ paddingLeft: 20, width: 40, height: 40 }}>
                   {this.renderSpinner()}
                 </div>
-
+                <div style={{ textAlign: 'right', marginRight: 0 }}><h5>{`${items ? items.length : 0} Searched!`}</h5></div>
               </div>
             </div>
             <DataTable

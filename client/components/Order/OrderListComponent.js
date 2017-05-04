@@ -33,7 +33,7 @@ class OrderList extends React.Component {
       pDisplay: 15,
       pCurrent: 1,
       pTotal: 0,
-      sortBy: 'nId',
+      sortBy: 'cAt',
       sortOrder: 'dsc',
       headers: [
         { name: 'Orderer', value: 'oDd', size: 2 },
@@ -44,8 +44,9 @@ class OrderList extends React.Component {
         { name: 'Currency', value: 'curr', size: 1 },
         { name: 'createdAt', value: 'cAt', size: 3 }
       ],
-      loadedAtOnce: 100,
+      loadedAtOnce: 500,
       loadedCurrent: 0,
+      sLoadedCurrent: 0
     };
   }
 
@@ -57,29 +58,80 @@ class OrderList extends React.Component {
     refs.order.root.off();
   }
 
+  onSearchQueryKeyPress(e) {
+    if (e.charCode === 13) this.handleSearching(e.target.value);
+  }
+
   onSearchQueryChange(e) {
-    this.handleSearching(e.target.value);
+    if (!e.target.value) this.handleSearching(null);
   }
 
   handleSearching = (word) => {
     if (word) {
-      this.setState({
-        searchedItems: this.state.items.filter((item) => {
-          if (item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
-          return false;
-        }),
-        isSelected: false,
-        isSearching: true,
-        searchWord: word,
-      }, () => {
-        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
-        this.handleSetTotalPage(this.state.searchedItems.length);
+      this.setState({ sLoadedCurrent: this.state.sLoadedCurrent + this.state.loadedAtOnce }, () => {
+        this.setState({ searchWord: word }, () => {
+          const searchQuery = refs.order.root.orderByChild('cAt').limitToFirst(this.state.sLoadedCurrent);
+
+          searchQuery.once('value')
+          .then((data) => {
+            this.setState({
+              searchedItems: data.val() ? Object.keys(data.val()).map(key => data.val()[key])
+              .filter((item) => {
+                if (item.id && item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
+                return false;
+              }).sort((a, b) => {
+                const sortBy = this.state.sortBy;
+                if (this.state.sortOrder === 'asc') return this.ascSorting(a[sortBy], b[sortBy]);
+                return this.dscSorting(a[sortBy], b[sortBy]);
+              }) : [],
+              isSelected: false
+            }, () => {
+              this.setState({ isSearching: true });
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
+              this.handleSetTotalPage(this.state.searchedItems.length);
+            });
+          });
+
+          this.orderSearchedChangedEvents = searchQuery.on('child_changed', (data) => {
+            this.setState({
+              searchedItems: this.state.searchedItems.map((item) => {
+                if (item.id === data.val().id) return data.val();
+                return item;
+              }),
+              isSelected: false
+            }, () => {
+              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+              if (this.state.isSearching) this.handleSetTotalPage(len);
+            });
+          });
+
+          this.orderSearchedRemovedEvents = searchQuery.on('child_removed', (data) => {
+            this.setState({
+              searchedItems: this.state.searchedItems.filter((item) => {
+                if (item.id === data.val().id) return false;
+                return true;
+              }),
+              isSelected: false
+            }, () => {
+              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+              if (this.state.isSearching) this.handleSetTotalPage(len);
+            });
+          });
+        });
       });
     } else {
-      this.setState({ isSearching: false }, () => {
-        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
-        this.handleSetTotalPage(this.state.items.length);
-      });
+      setTimeout(() => {
+        this.setState({ isSearching: false, sLoadedCurrent: 0 }, () => {
+          if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
+          if (this.state.searchedItems.length) {
+            refs.order.root.off('child_changed', this.orderSearchedChangedEvents);
+            refs.order.root.off('child_removed', this.orderSearchedRemovedEvents);
+          }
+          this.handleSetTotalPage(this.state.items.length);
+        });
+      }, 100);
     }
   }
 
@@ -100,11 +152,14 @@ class OrderList extends React.Component {
   handleSetPage = (pCurrent) => {
     this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
     if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
-    if ((pCurrent === this.state.pTotal) && !this.state.isSearching) this.handleLoadData();
+    if (pCurrent === this.state.pTotal) {
+      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+      else this.handleLoadData();
+    }
   }
 
-  handleSetTotalPage = (length) => {
-    const pTotal = Math.ceil(length / this.state.pDisplay);
+  handleSetTotalPage = (itemLength) => {
+    const pTotal = Math.ceil(itemLength / this.state.pDisplay) === 0 ? 1 : Math.ceil(itemLength / this.state.pDisplay);
     if (pTotal < this.state.pCurrent) this.handleSetPage(1);
     if (pTotal !== this.state.pTotal) this.setState({ pTotal });
   }
@@ -112,93 +167,92 @@ class OrderList extends React.Component {
   handleSorting = (e, prop) => {
     const sortOrder = this.state.sortOrder;
     const sortBy = this.state.sortBy;
-    this.setState({
-      items: prop !== 'No' ? this.state.items.sort((a, b) => {
-        if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
-          if (a[prop] > b[prop] || !b[prop]) return 1;
-          else if (a[prop] < b[prop] || !a[prop]) return -1;
-          return 0;
-        }
-        if (a[prop] < b[prop] || !a[prop]) return 1;
-        else if (a[prop] > b[prop] || !b[prop]) return -1;
-        return 0;
-      }) : this.state.items.reverse()
-    }, () => {
-      if (e) {
-        const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
-        this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
-        this.setState({ sortBy: prop });
-      }
-      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
-    });
+    if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
+      this.setState({ items: this.state.items.sort((a, b) => this.dscSorting(a[prop], b[prop])) });
+      this.setState({ searchedItems: this.state.searchedItems.sort((a, b) => this.dscSorting(a[prop], b[prop])) });
+    } else {
+      this.setState({ items: this.state.items.sort((a, b) => this.ascSorting(a[prop], b[prop])) });
+      this.setState({ searchedItems: this.state.searchedItems.sort((a, b) => this.ascSorting(a[prop], b[prop])) });
+    }
+    if (e) {
+      const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
+      this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
+      this.setState({ sortBy: prop });
+    }
+  }
+
+  ascSorting = (a, b) => {
+    if (a > b || !b) return 1;
+    else if (a < b || !a) return -1;
+    return 0;
+  }
+
+  dscSorting = (a, b) => {
+    if (a > b || !b) return -1;
+    else if (a < b || !a) return 1;
+    return 0;
   }
 
   handleLoadData = () => {
-    this.setState({ isLoading: true });
     this.setState({
       loadedCurrent: this.state.loadedCurrent + this.state.loadedAtOnce
     }, () => {
-      this.orderRootEvents = refs.order.root.orderByKey().limitToFirst(this.state.loadedCurrent);
-      this.orderRootEvents.once('value')
+      const loadQuery = refs.order.root.orderByChild('cAt').limitToFirst(this.state.loadedCurrent);
+      loadQuery.once('value')
       .then((data) => {
         this.setState({
-          tempOrders: Object.keys(data.val()).map(key => data.val()[key])
+          tempOrders: data.val() ? Object.keys(data.val()).map(key => data.val()[key]) : []
         }, () => {
-          this.setState({ orders: this.state.tempOrders }, () => {
-            this.setState({ items: this.state.orders }, () => {
-              this.handleSetTotalPage(this.state.items.length);
-              this.orderRootEvents.on('child_added', (order) => {
-                let isIn = false;
-                const len = this.state.orders.length;
-                for (let i = 0; i < len; ++i) {
-                  if (this.state.orders[i].id === order.val().id) {
-                    isIn = true;
-                    break;
-                  }
+          this.setState({ items: this.state.tempOrders }, () => {
+            if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
+
+            this.orderAddedEvents = loadQuery.on('child_added', (order) => {
+              let isIn = false;
+              const len = this.state.items.length;
+              for (let i = 0; i < len; ++i) {
+                if (this.state.items[i].id === order.val().id) {
+                  isIn = true;
+                  break;
                 }
-                if (!isIn) {
-                  this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
-                    this.handleSetTotalPage(this.state.orders.length);
-                    this.setState({ items: this.state.orders });
-                  });
-                }
-              });
-              this.orderRootEvents.on('child_changed', (order) => {
-                let isIn = false;
-                this.setState({
-                  orders: this.state.orders.map((o) => {
-                    if (order.child('id').val() === o.id) {
-                      isIn = true;
-                      return order.val();
-                    }
-                    return o;
-                  })
-                }, () => {
-                  if (!isIn) {
-                    this.setState({ orders: this.state.orders.concat(order.val()) }, () => {
-                      this.handleSetTotalPage(this.state.orders.length);
-                      this.setState({ items: this.state.orders });
-                    });
-                  }
+              }
+              if (!isIn) {
+                this.setState({ items: this.state.items.concat(order.val()) }, () => {
+                  if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
                 });
-              });
-              this.orderRootEvents.on('child_removed', (order) => {
-                this.setState({
-                  orders: this.state.orders.filter((o) => {
-                    if (order.child('id').val() === o.id) {
-                      return false;
-                    }
-                    return true;
-                  })
-                }, () => {
-                  this.handleSetTotalPage(this.state.orders.length);
-                  this.setState({ items: this.state.orders });
-                });
-              });
-              setTimeout(() => {
-                this.handleSorting(null, this.state.sortBy);
-              }, 500);
+              }
             });
+
+            this.orderChangedEvents = loadQuery.on('child_changed', (order) => {
+              this.setState({
+                items: this.state.items.map((o) => {
+                  if (order.child('id').val() === o.id) return order.val();
+                  return o;
+                }),
+                isSelected: false
+              }, () => {
+                const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+                if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+                if (!this.state.isSearching) this.handleSetTotalPage(len);
+              });
+            });
+
+            this.orderRemovedEvents = loadQuery.on('child_removed', (order) => {
+              this.setState({
+                items: this.state.items.filter((o) => {
+                  if (order.child('id').val() === o.id) return false;
+                  return true;
+                }),
+                isSelected: false
+              }, () => {
+                const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+                if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+                if (!this.state.isSearching) this.handleSetTotalPage(len);
+              });
+            });
+
+            setTimeout(() => {
+              this.handleSorting(null, this.state.sortBy);
+            }, 100);
           });
         });
       });
@@ -207,7 +261,7 @@ class OrderList extends React.Component {
 
   handleChangeSearchBy = (e, i, v) => {
     this.setState({ searchBy: v }, () => {
-      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+      // if (this.state.isSearching) this.handleSearching(this.state.searchWord);
     });
   }
 
@@ -265,6 +319,7 @@ class OrderList extends React.Component {
                 }}
               >
                 <TextField
+                  onKeyPress={this.onSearchQueryKeyPress.bind(this)}
                   onChange={this.onSearchQueryChange.bind(this)}
                   floatingLabelText={'Search Order...'}
                 />
@@ -280,7 +335,7 @@ class OrderList extends React.Component {
                 <div style={{ paddingLeft: 20, width: 40, height: 40 }}>
                   {this.renderSpinner()}
                 </div>
-
+                <div style={{ textAlign: 'right', marginRight: 0 }}><h5>{`${items ? items.length : 0} Searched!`}</h5></div>
               </div>
             </div>
             <DataTable

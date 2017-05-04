@@ -64,8 +64,9 @@ export default class NodeList extends React.Component {
         { name: 'Phone', value: 'p', size: 2 },
         { name: 'CreatedAt', value: 'cAt', size: 3 },
       ],
-      loadedAtOnce: 100,
+      loadedAtOnce: 500,
       loadedCurrent: 0,
+      sLoadedCurrent: 0
     };
   }
 
@@ -78,8 +79,12 @@ export default class NodeList extends React.Component {
 
   }
 
+  onSearchQueryKeyPress(e) {
+    if (e.charCode === 13) this.handleSearching(e.target.value);
+  }
+
   onSearchQueryChange(e) {
-    this.handleSearching(e.target.value);
+    if (!e.target.value) this.handleSearching(null);
   }
 
   getNodeCategoryFromServer = () => client.query(`{
@@ -113,23 +118,70 @@ export default class NodeList extends React.Component {
 
   handleSearching = (word) => {
     if (word) {
-      this.setState({
-        searchedItems: this.state.items.filter((item) => {
-          if (item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
-          return false;
-        }),
-        isSelected: false,
-        isSearching: true,
-        searchWord: word,
-      }, () => {
-        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
-        this.handleSetTotalPage(this.state.searchedItems.length);
+      this.setState({ sLoadedCurrent: this.state.sLoadedCurrent + this.state.loadedAtOnce }, () => {
+        this.setState({ searchWord: word }, () => {
+          const searchQuery = refs.node.root.orderByKey().limitToFirst(this.state.sLoadedCurrent);
+
+          searchQuery.once('value')
+          .then((data) => {
+            this.setState({
+              searchedItems: data.val() ? Object.keys(data.val()).map(key => data.val()[key])
+              .filter((item) => {
+                if (item.id && item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
+                return false;
+              }).sort((a, b) => {
+                const sortBy = this.state.sortBy;
+                if (this.state.sortOrder === 'asc') return this.ascSorting(a[sortBy], b[sortBy]);
+                return this.dscSorting(a[sortBy], b[sortBy]);
+              }) : [],
+              isSelected: false
+            }, () => {
+              this.setState({ isSearching: true });
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
+              this.handleSetTotalPage(this.state.searchedItems.length);
+            });
+          });
+
+          this.nodeSearchedChangedEvents = searchQuery.on('child_changed', (data) => {
+            this.setState({
+              searchedItems: this.state.searchedItems.map((item) => {
+                if (item.id === data.val().id) return data.val();
+                return item;
+              }),
+              isSelected: false
+            }, () => {
+              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+              if (this.state.isSearching) this.handleSetTotalPage(len);
+            });
+          });
+
+          this.nodeSearchedRemovedEvents = searchQuery.on('child_removed', (data) => {
+            this.setState({
+              searchedItems: this.state.searchedItems.filter((item) => {
+                if (item.id === data.val().id) return false;
+                return true;
+              }),
+              isSelected: false
+            }, () => {
+              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+              if (this.state.isSearching) this.handleSetTotalPage(len);
+            });
+          });
+        });
       });
     } else {
-      this.setState({ isSearching: false }, () => {
-        if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
-        this.handleSetTotalPage(this.state.items.length);
-      });
+      setTimeout(() => {
+        this.setState({ isSearching: false, sLoadedCurrent: 0 }, () => {
+          if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
+          if (this.state.searchedItems.length) {
+            refs.node.root.off('child_changed', this.nodeSearchedChangedEvents);
+            refs.node.root.off('child_removed', this.nodeSearchedRemovedEvents);
+          }
+          this.handleSetTotalPage(this.state.items.length);
+        });
+      }, 100);
     }
   }
 
@@ -259,11 +311,14 @@ export default class NodeList extends React.Component {
   handleSetPage = (pCurrent) => {
     this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
     if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
-    if (pCurrent === this.state.pTotal) this.handleLoadData();
+    if (pCurrent === this.state.pTotal) {
+      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+      else this.handleLoadData();
+    }
   }
 
-  handleSetTotalPage = (length) => {
-    const pTotal = Math.ceil(length / this.state.pDisplay);
+  handleSetTotalPage = (itemLength) => {
+    const pTotal = Math.ceil(itemLength / this.state.pDisplay) === 0 ? 1 : Math.ceil(itemLength / this.state.pDisplay);
     if (pTotal < this.state.pCurrent) this.handleSetPage(1);
     if (pTotal !== this.state.pTotal) this.setState({ pTotal });
   }
@@ -271,25 +326,31 @@ export default class NodeList extends React.Component {
   handleSorting = (e, prop) => {
     const sortOrder = this.state.sortOrder;
     const sortBy = this.state.sortBy;
-    this.setState({
-      items: prop !== 'No' ? this.state.items.sort((a, b) => {
-        if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
-          if (a[prop] > b[prop] || !b[prop]) return 1;
-          else if (a[prop] < b[prop] || !a[prop]) return -1;
-          return 0;
-        }
-        if (a[prop] < b[prop] || !a[prop]) return 1;
-        else if (a[prop] > b[prop] || !b[prop]) return -1;
-        return 0;
-      }) : this.state.items.reverse()
-    }, () => {
-      if (e) {
-        const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
-        this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
-        this.setState({ sortBy: prop });
-      }
-      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
-    });
+    if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
+      this.setState({ items: this.state.items.sort((a, b) => this.dscSorting(a[prop], b[prop])) });
+      this.setState({ searchedItems: this.state.searchedItems.sort((a, b) => this.dscSorting(a[prop], b[prop])) });
+    } else {
+      this.setState({ items: this.state.items.sort((a, b) => this.ascSorting(a[prop], b[prop])) });
+      this.setState({ searchedItems: this.state.searchedItems.sort((a, b) => this.ascSorting(a[prop], b[prop])) });
+    }
+    if (e) {
+      const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
+      this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
+      this.setState({ sortBy: prop });
+    }
+  }
+
+
+  ascSorting = (a, b) => {
+    if (a > b || !b) return 1;
+    else if (a < b || !a) return -1;
+    return 0;
+  }
+
+  dscSorting = (a, b) => {
+    if (a > b || !b) return -1;
+    else if (a < b || !a) return 1;
+    return 0;
   }
 
   handleLoadData = () => {
@@ -300,7 +361,7 @@ export default class NodeList extends React.Component {
         if (data.val()) {
           this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) }, () => {
             this.setState({ items: this.state.nodes }, () => {
-              this.handleSetTotalPage();
+              this.handleSetTotalPage(this.state.items.length);
               this.handleSorting(null, this.state.sortBy);
             });
           });
@@ -310,7 +371,9 @@ export default class NodeList extends React.Component {
   }
 
   handleChangeSearchBy = (e, i, v) => {
-    this.setState({ searchBy: v });
+    this.setState({ searchBy: v }, () => {
+      // if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+    });
   }
 
   renderSpinner() {
@@ -375,6 +438,7 @@ export default class NodeList extends React.Component {
                 }}
               >
                 <TextField
+                  onKeyPress={this.onSearchQueryKeyPress.bind(this)}
                   onChange={this.onSearchQueryChange.bind(this)}
                   floatingLabelText={'Search Node...'}
                 />
@@ -390,6 +454,7 @@ export default class NodeList extends React.Component {
                 <div style={{ paddingLeft: 20, width: 40, height: 40 }}>
                   {this.renderSpinner()}
                 </div>
+                <div style={{ textAlign: 'right', marginRight: 0 }}><h5>{`${items ? items.length : 0} Searched!`}</h5></div>
               </div>
             </div>
             <div style={{ float: 'clear' }} >
