@@ -1,13 +1,9 @@
 import csv from 'csv-string';
 import React from 'react';
-import moment from 'moment';
-
-import { Link } from 'react-router';
 
 import FloatingActionButton from 'material-ui/FloatingActionButton';
 import ContentAdd from 'material-ui/svg-icons/content/add';
 import ActionNoteAdd from 'material-ui/svg-icons/action/note-add';
-import RaisedButton from 'material-ui/RaisedButton';
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
 import Divider from 'material-ui/Divider';
@@ -16,15 +12,8 @@ import TextField from 'material-ui/TextField';
 import CircularProgress from 'material-ui/CircularProgress';
 import DropDownMenu from 'material-ui/DropDownMenu';
 import MenuItem from 'material-ui/MenuItem';
-
-import {
-  Table,
-  TableBody,
-  TableHeader,
-  TableHeaderColumn,
-  TableRow,
-  TableRowColumn
-} from 'material-ui/Table';
+import SelectField from 'material-ui/SelectField';
+import DataTable from '../Table/TableComponent';
 
 import {
   refs,
@@ -47,10 +36,37 @@ export default class NodeList extends React.Component {
       createNodeModalOpen: false,
       bulkModalOpen: false,
       nodes: [],
+      items: [],
       nodeCategory: {},
       c1: -1,
       c2: -1,
       c3: -1,
+      isSelected: false,
+      selectedKey: -1,
+      pDisplay: 15,
+      pCurrent: 1,
+      pTotal: 0,
+      sortBy: 'id',
+      sortOrder: 'dsc',
+      searchBy: 'n',
+      searchWord: '',
+      isSearching: false,
+      searchedItems: [],
+      searchOptions: [
+        { name: 'name', value: 'n' },
+        { name: 'address', value: 'addr' },
+        { name: 'phone', value: 'p' }
+      ],
+      headers: [
+        { name: 'Image', value: 'imgUrl', size: 3 },
+        { name: 'Name', value: 'n', size: 3 },
+        { name: 'Address', value: 'addr', size: 4 },
+        { name: 'Phone', value: 'p', size: 2 },
+        { name: 'CreatedAt', value: 'cAt', size: 3 },
+      ],
+      loadedAtOnce: 500,
+      loadedCurrent: 0,
+      sLoadedCurrent: 0
     };
   }
 
@@ -61,6 +77,14 @@ export default class NodeList extends React.Component {
 
   componentWillUnmount() {
 
+  }
+
+  onSearchQueryKeyPress(e) {
+    if (e.charCode === 13) this.handleSearching(e.target.value);
+  }
+
+  onSearchQueryChange(e) {
+    if (!e.target.value) this.handleSearching(null);
   }
 
   getNodeCategoryFromServer = () => client.query(`{
@@ -92,13 +116,77 @@ export default class NodeList extends React.Component {
     return { c1, c2 };
   };
 
-  initList() {
-    refs.node.root.orderByChild('createdAt').limitToLast(20).once('value', (data) => {
-      if (data.val()) {
-        this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) });
-      }
-    });
+  handleSearching = (word) => {
+    if (word) {
+      this.setState({ sLoadedCurrent: this.state.sLoadedCurrent + this.state.loadedAtOnce }, () => {
+        this.setState({ searchWord: word }, () => {
+          const searchQuery = refs.node.root.orderByKey().limitToFirst(this.state.sLoadedCurrent);
 
+          searchQuery.once('value')
+          .then((data) => {
+            this.setState({
+              searchedItems: data.val() ? Object.keys(data.val()).map(key => data.val()[key])
+              .filter((item) => {
+                if (item.id && item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
+                return false;
+              }).sort((a, b) => {
+                const sortBy = this.state.sortBy;
+                if (this.state.sortOrder === 'asc') return this.ascSorting(a[sortBy], b[sortBy]);
+                return this.dscSorting(a[sortBy], b[sortBy]);
+              }) : [],
+              isSelected: false
+            }, () => {
+              this.setState({ isSearching: true });
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
+              this.handleSetTotalPage(this.state.searchedItems.length);
+            });
+          });
+
+          this.nodeSearchedChangedEvents = searchQuery.on('child_changed', (data) => {
+            this.setState({
+              searchedItems: this.state.searchedItems.map((item) => {
+                if (item.id === data.val().id) return data.val();
+                return item;
+              }),
+              isSelected: false
+            }, () => {
+              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+              if (this.state.isSearching) this.handleSetTotalPage(len);
+            });
+          });
+
+          this.nodeSearchedRemovedEvents = searchQuery.on('child_removed', (data) => {
+            this.setState({
+              searchedItems: this.state.searchedItems.filter((item) => {
+                if (item.id === data.val().id) return false;
+                return true;
+              }),
+              isSelected: false
+            }, () => {
+              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
+              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
+              if (this.state.isSearching) this.handleSetTotalPage(len);
+            });
+          });
+        });
+      });
+    } else {
+      setTimeout(() => {
+        this.setState({ isSearching: false, sLoadedCurrent: 0 }, () => {
+          if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
+          if (this.state.searchedItems.length) {
+            refs.node.root.off('child_changed', this.nodeSearchedChangedEvents);
+            refs.node.root.off('child_removed', this.nodeSearchedRemovedEvents);
+          }
+          this.handleSetTotalPage(this.state.items.length);
+        });
+      }, 100);
+    }
+  }
+
+  initList() {
+    this.handleLoadData();
     this.getNodeCategoryFromServer()
       .then((nodeCategory) => {
         this.setState({ nodeCategory });
@@ -220,6 +308,74 @@ export default class NodeList extends React.Component {
       .catch(console.log);
   };
 
+  handleSetPage = (pCurrent) => {
+    this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
+    if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
+    if (pCurrent === this.state.pTotal) {
+      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+      else this.handleLoadData();
+    }
+  }
+
+  handleSetTotalPage = (itemLength) => {
+    const pTotal = Math.ceil(itemLength / this.state.pDisplay) === 0 ? 1 : Math.ceil(itemLength / this.state.pDisplay);
+    if (pTotal < this.state.pCurrent) this.handleSetPage(1);
+    if (pTotal !== this.state.pTotal) this.setState({ pTotal });
+  }
+
+  handleSorting = (e, prop) => {
+    const sortOrder = this.state.sortOrder;
+    const sortBy = this.state.sortBy;
+    if (((sortOrder === 'asc' || sortBy !== prop) && e) || (sortOrder === 'dsc' && !e)) {
+      this.setState({ items: this.state.items.sort((a, b) => this.dscSorting(a[prop], b[prop])) });
+      this.setState({ searchedItems: this.state.searchedItems.sort((a, b) => this.dscSorting(a[prop], b[prop])) });
+    } else {
+      this.setState({ items: this.state.items.sort((a, b) => this.ascSorting(a[prop], b[prop])) });
+      this.setState({ searchedItems: this.state.searchedItems.sort((a, b) => this.ascSorting(a[prop], b[prop])) });
+    }
+    if (e) {
+      const nextSortOrder = this.state.sortOrder === 'asc' ? 'dsc' : 'asc';
+      this.setState({ sortOrder: this.state.sortBy === prop ? nextSortOrder : 'dsc' });
+      this.setState({ sortBy: prop });
+    }
+  }
+
+
+  ascSorting = (a, b) => {
+    if (a > b || !b) return 1;
+    else if (a < b || !a) return -1;
+    return 0;
+  }
+
+  dscSorting = (a, b) => {
+    if (a > b || !b) return -1;
+    else if (a < b || !a) return 1;
+    return 0;
+  }
+
+  handleLoadData = () => {
+    this.setState({
+      loadedCurrent: this.state.loadedCurrent + this.state.loadedAtOnce
+    }, () => {
+      refs.node.root.orderByChild('createdAt').limitToFirst(this.state.loadedCurrent).once('value', (data) => {
+        if (data.val()) {
+          this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) }, () => {
+            this.setState({ items: this.state.nodes }, () => {
+              this.handleSetTotalPage(this.state.items.length);
+              this.handleSorting(null, this.state.sortBy);
+            });
+          });
+        }
+      });
+    });
+  }
+
+  handleChangeSearchBy = (e, i, v) => {
+    this.setState({ searchBy: v }, () => {
+      // if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+    });
+  }
+
   renderSpinner() {
     if (this.state.isSearching) {
       return (<CircularProgress size={25} thickness={2} />);
@@ -253,7 +409,7 @@ export default class NodeList extends React.Component {
         onTouchTap={this.handleCreateNodeFromBulkModalCreate}
       />,
     ];
-
+    const items = this.state.isSearching ? this.state.searchedItems : this.state.items;
     return (
       <div>
         <div style={{ width: '100%', margin: 'auto' }}>
@@ -281,14 +437,24 @@ export default class NodeList extends React.Component {
                   justifyContent: 'flex-end'
                 }}
               >
-                {/* <TextField*/}
-                {/* onChange={this.onSearchQueryChange.bind(this)}*/}
-                {/* floatingLabelText='Search User by E-mail...'*/}
-                {/* />*/}
+                <TextField
+                  onKeyPress={this.onSearchQueryKeyPress.bind(this)}
+                  onChange={this.onSearchQueryChange.bind(this)}
+                  floatingLabelText={'Search Node...'}
+                />
+                <SelectField
+                  floatingLabelText='SEARCH BY'
+                  value={this.state.searchBy}
+                  onChange={this.handleChangeSearchBy}
+                >
+                  {this.state.searchOptions.map(option => (
+                    <MenuItem key={option.value} value={option.value} primaryText={option.name} />
+                  ))}
+                </SelectField>
                 <div style={{ paddingLeft: 20, width: 40, height: 40 }}>
                   {this.renderSpinner()}
                 </div>
-
+                <div style={{ textAlign: 'right', marginRight: 0 }}><h5>{`${items ? items.length : 0} Searched!`}</h5></div>
               </div>
             </div>
             <div style={{ float: 'clear' }} >
@@ -336,42 +502,21 @@ export default class NodeList extends React.Component {
               {/* ) : null*/}
               {/* }*/}
               {/* </DropDownMenu>*/}
-              <Table
-                selectable
-                fixedHeader
-              >
-                <TableHeader>
-                  <TableRow>
-                    <TableHeaderColumn colSpan='2'>image</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='2'>Name</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Address</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Phone</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>CreatedAt</TableHeaderColumn>
-                    <TableHeaderColumn colSpan='3'>Action</TableHeaderColumn>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {this.state.nodes.map((node) => {
-                    const time = node.cAt ? moment(node.cAt).calendar() : 'N/A';
-                    return (
-                      <TableRow key={node.id}>
-                        <TableRowColumn colSpan='2'><img width={50} role='presentation' src={node.imgUrl} /></TableRowColumn>
-                        <TableRowColumn colSpan='2'>{node.n}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{node.addr}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{node.p}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>{`${time}`}</TableRowColumn>
-                        <TableRowColumn colSpan='3'>
-                          <Link to={`/node/${node.id}`}>
-                            <RaisedButton label='Details' primary />
-                          </Link>
-                          {/* </RaisedButton>*/}
-                        </TableRowColumn>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table></div>
 
+            </div>
+            <DataTable
+              class='node'
+              items={items}
+              headers={this.state.headers}
+              pCurrent={this.state.pCurrent}
+              pDisplay={this.state.pDisplay}
+              pTotal={this.state.pTotal}
+              handleRowSelection={this.handleRowSelection}
+              handleSetPage={this.handleSetPage}
+              sortOrder={this.state.sortOrder}
+              sortBy={this.state.sortBy}
+              onClickSort={this.handleSorting}
+            />
           </Paper>
           <Dialog
             title='Create Node'
