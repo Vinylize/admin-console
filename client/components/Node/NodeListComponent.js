@@ -45,7 +45,7 @@ export default class NodeList extends React.Component {
       pCurrent: 1,
       pTotal: 0,
       sortBy: 'id',
-      sortOrder: 'asc',
+      sortOrder: 'dsc',
       searchBy: 'n',
       searchOptions: [
         { name: 'name', value: 'n' },

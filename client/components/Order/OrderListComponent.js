@@ -32,7 +32,7 @@ class OrderList extends React.Component {
       pCurrent: 1,
       pTotal: 0,
       sortBy: 'nId',
-      sortOrder: 'asc',
+      sortOrder: 'dsc',
       headers: [
         { name: 'Orderer', value: 'oDd', size: 2 },
         { name: 'Runner', value: 'rId', size: 2 },

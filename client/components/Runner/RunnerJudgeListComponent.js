@@ -37,7 +37,7 @@ export default class RunnerJudgeList extends React.Component {
       pCurrent: 1,
       pTotal: 0,
       sortBy: 'id',
-      sortOrder: 'asc',
+      sortOrder: 'dsc',
       headers: [
         { name: 'Identification', value: 'idUrl', size: 3 },
         { name: 'Email', value: 'e', size: 3 },
@@ -113,10 +113,7 @@ export default class RunnerJudgeList extends React.Component {
         if (isA) alert('The user is approved!');
         else alert('The user is disapproved!');
         setTimeout(() => {
-          this.setState({ users: [] });
-          this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
-            if (data.child('isWJ').val() === true) this.setState({ users: this.state.users.concat(data.val()) });
-          });
+          this.handleLoadData();
           if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
         }, 100);
       })
@@ -145,10 +142,7 @@ export default class RunnerJudgeList extends React.Component {
         if (isB) alert('The user is unblocked!');
         else alert('Ther user is blocked!');
         setTimeout(() => {
-          this.setState({ users: [] });
-          this.userRootChildAdded = refs.user.root.orderByKey().on('child_added', (data) => {
-            if (data.child('isWJ').val() === true) this.setState({ users: this.state.users.concat(data.val()) });
-          });
+          this.handleLoadData();
           if (this.state.users.length > this.state.selectedKey) this.setState({ isSelected: true });
         }, 100);
       })
@@ -300,7 +294,7 @@ export default class RunnerJudgeList extends React.Component {
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
                 <RaisedButton
-                  label={this.state.isSelected && this.state.users.length > 0 ? (<Link to={`/runner/${this.state.users[this.state.selectedKey].id}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
+                  label={this.state.isSelected && this.state.items.length > 0 ? (<Link to={`/runner/${this.state.items[this.state.selectedKey].id}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
                   primary
                   disabled={!this.state.isSelected}
                   style={{
@@ -310,21 +304,21 @@ export default class RunnerJudgeList extends React.Component {
                 <RaisedButton
                   label='Block'
                   secondary
-                  disabled={!this.state.isSelected || this.state.users[this.state.selectedKey].isB}
+                  disabled={!this.state.isSelected || this.state.items[this.state.selectedKey].isB}
                   style={{
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(e) => { this.handleBlockUser(e, this.state.users[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleBlockUser(e, this.state.items[this.state.selectedKey].id, false); }}
                 />
                 <RaisedButton
                   label='Unblock'
                   primary
-                  disabled={!this.state.isSelected || !this.state.users[this.state.selectedKey].isB}
+                  disabled={!this.state.isSelected || !this.state.items[this.state.selectedKey].isB}
                   style={{
                     margin: 12,
                   }}
-                  onClick={(e) => { this.handleBlockUser(e, this.state.users[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleBlockUser(e, this.state.items[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='APPROVE'
@@ -335,7 +329,7 @@ export default class RunnerJudgeList extends React.Component {
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(e) => { this.handleApproveRunner(e, this.state.users[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleApproveRunner(e, this.state.items[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='DISAPPROVE'
@@ -344,7 +338,7 @@ export default class RunnerJudgeList extends React.Component {
                   style={{
                     margin: 12
                   }}
-                  onClick={(e) => { this.handleApproveRunner(e, this.state.users[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleApproveRunner(e, this.state.items[this.state.selectedKey].id, false); }}
                 />
               </div>
               <div

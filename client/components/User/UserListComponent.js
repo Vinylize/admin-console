@@ -46,7 +46,7 @@ class UserList extends React.Component {
       pCurrent: 1,
       pTotal: 0,
       sortBy: 'id',
-      sortOrder: 'asc',
+      sortOrder: 'dsc',
       headers: [
         { name: 'Email', value: 'e', size: 3 },
         { name: 'Name', value: 'n', size: 2 },
@@ -292,7 +292,7 @@ class UserList extends React.Component {
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
                 <RaisedButton
-                  label={this.state.isSelected && this.state.users.length > 0 ? (<Link to={`/user/${this.state.users[this.state.selectedKey].id}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
+                  label={this.state.isSelected && this.state.items.length > 0 ? (<Link to={`/user/${this.state.items[this.state.selectedKey].id}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
                   primary
                   disabled={!this.state.isSelected}
                   style={{
@@ -302,21 +302,21 @@ class UserList extends React.Component {
                 <RaisedButton
                   label='Block'
                   secondary
-                  disabled={!this.state.isSelected || this.state.users[this.state.selectedKey].isB}
+                  disabled={!this.state.isSelected || this.state.items[this.state.selectedKey].isB}
                   style={{
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(e) => { this.handleBlockUser(e, this.state.users[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleBlockUser(e, this.state.items[this.state.selectedKey].id, false); }}
                 />
                 <RaisedButton
                   label='Unblock'
                   primary
-                  disabled={!this.state.isSelected || !this.state.users[this.state.selectedKey].isB}
+                  disabled={!this.state.isSelected || !this.state.items[this.state.selectedKey].isB}
                   style={{
                     margin: 12,
                   }}
-                  onClick={(e) => { this.handleBlockUser(e, this.state.users[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleBlockUser(e, this.state.items[this.state.selectedKey].id, true); }}
                 />
                 <RaisedButton
                   label='APPROVE'
