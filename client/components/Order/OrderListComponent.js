@@ -68,33 +68,57 @@ class OrderList extends React.Component {
     if (!e.target.value) this.handleSearching(null);
   }
 
-  setNameFromId = (item) => {
+  setNameFromIds = items => new Promise((resolve, reject) => {
+    const newItems = [];
+    const promises = items.map(item => this.setNameFromId(item)
+      .then((newItem) => {
+        newItems.push(newItem);
+        return newItem;
+      })
+      .catch(reject)
+    );
+    return Promise.all(promises)
+    .then(() => resolve(newItems))
+    .catch(reject);
+  })
+
+  setNameFromId = item => new Promise((resolve, reject) => {
     /* eslint-disable no-param-reassign */
+    const promises = [];
     if (item) {
       if (item.oId) {
-        refs.user.root.child(item.oId).child('n').once('value')
-        .then((o) => {
-          item.oName = item.oId ? o.val() : '';
-        });
+        promises.push(refs.user.root.child(item.oId).child('n').once('value')
+          .then((o) => {
+            item.oName = item.oId ? o.val() : '';
+          })
+          .catch(reject)
+        );
       }
       if (item.rId) {
-        refs.user.root.child(item.rId).child('n').once('value')
-        .then((r) => {
-          item.rName = item.oId ? r.val() : '';
-        });
+        promises.push(refs.user.root.child(item.rId).child('n').once('value')
+          .then((r) => {
+            item.rName = item.oId ? r.val() : '';
+          })
+          .catch(reject)
+        );
       }
       if (item.nId) {
-        refs.node.root.child(item.nId).child('n').once('value')
-        .then((n) => {
-          item.nName = item.nId ? n.val() : '';
-        });
+        promises.push(refs.node.root.child(item.nId).child('n').once('value')
+          .then((n) => {
+            item.nName = item.nId ? n.val() : '';
+          })
+          .catch(reject)
+        );
       }
     }
+    return Promise.all(promises)
+    .then(() => resolve(item))
+    .catch(reject);
     /* eslint-enable no-param-reassign */
-    return item;
-  }
+  })
 
   handleSearching = (word) => {
+    console.log('searching');
     if (word) {
       this.setState({ sLoadedCurrent: this.state.sLoadedCurrent + this.state.loadedAtOnce }, () => {
         this.setState({ searchWord: word }, () => {
@@ -102,15 +126,16 @@ class OrderList extends React.Component {
 
           searchQuery.once('value')
           .then((data) => {
-            this.setState({
-              searchedItems: data.val() ? Object.keys(data.val()).map(key => this.setNameFromId(data.val()[key]))
-              .sort((a, b) => {
-                const sortBy = this.state.sortBy;
-                if (this.state.sortOrder === 'asc') return this.ascSorting(a[sortBy], b[sortBy]);
-                return this.dscSorting(a[sortBy], b[sortBy]);
-              }) : []
-            }, () => {
-              setTimeout(() => {
+            this.setNameFromIds(Object.keys(data.val()).map(key => data.val()[key]))
+            .then((items) => {
+              this.setState({
+                searchedItems: items ? items
+                .sort((a, b) => {
+                  const sortBy = this.state.sortBy;
+                  if (this.state.sortOrder === 'asc') return this.ascSorting(a[sortBy], b[sortBy]);
+                  return this.dscSorting(a[sortBy], b[sortBy]);
+                }) : []
+              }, () => {
                 this.setState({
                   searchedItems: this.state.searchedItems.filter((item) => {
                     if (item.id && item[this.state.searchBy] && item[this.state.searchBy].match(word)) return true;
@@ -121,31 +146,37 @@ class OrderList extends React.Component {
                   this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
                   this.handleSetTotalPage(this.state.searchedItems.length);
                 });
-              }, 1000);
+              });
             });
           });
 
           this.orderSearchedChangedEvents = searchQuery.on('child_changed', (data) => {
-            this.setState({
-              searchedItems: this.state.searchedItems.map((item) => {
-                if (item.id === data.val().id) return this.setNameFromId(data.val());
-                return item;
-              })
-            }, () => {
-              this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
-              this.handleSetTotalPage(this.state.searchedItems.length);
+            this.setNameFromId(data.val())
+            .then((item) => {
+              this.setState({
+                searchedItems: this.state.searchedItems.map((order) => {
+                  if (order.id === item.id) return item;
+                  return order;
+                })
+              }, () => {
+                this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
+                this.handleSetTotalPage(this.state.searchedItems.length);
+              });
             });
           });
 
           this.orderSearchedRemovedEvents = searchQuery.on('child_removed', (data) => {
-            this.setState({
-              searchedItems: this.state.searchedItems.filter((item) => {
-                if (item.id === data.val().id) return false;
-                return true;
-              })
-            }, () => {
-              this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
-              this.handleSetTotalPage(this.state.searchedItems.length);
+            this.setNameFromId(data.val())
+            .then((item) => {
+              this.setState({
+                searchedItems: this.state.searchedItems.filter((order) => {
+                  if (order.id === item.id) return false;
+                  return true;
+                })
+              }, () => {
+                this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
+                this.handleSetTotalPage(this.state.searchedItems.length);
+              });
             });
           });
         });
@@ -227,56 +258,65 @@ class OrderList extends React.Component {
       const loadQuery = refs.order.root.orderByChild('cAt').limitToFirst(this.state.loadedCurrent);
       loadQuery.once('value')
       .then((data) => {
-        this.setState({
-          tempOrders: data.val() ? Object.keys(data.val()).map(key => this.setNameFromId(data.val()[key])) : []
-        }, () => {
-          this.setState({ items: this.state.tempOrders }, () => {
-            if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
+        this.setNameFromIds(Object.keys(data.val()).map(key => data.val()[key]))
+        .then((items) => {
+          this.setState({
+            tempOrders: items
+          }, () => {
+            this.setState({ items: this.state.tempOrders }, () => {
+              if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
 
-            this.orderAddedEvents = loadQuery.on('child_added', (order) => {
-              let isIn = false;
-              const len = this.state.items.length;
-              for (let i = 0; i < len; ++i) {
-                if (this.state.items[i].id === order.val().id) {
-                  isIn = true;
-                  break;
-                }
-              }
-              if (!isIn) {
-                this.setState({ items: this.state.items.concat(this.setNameFromId(order.val())) }, () => {
+              this.orderAddedEvents = loadQuery.on('child_added', (order) => {
+                this.setNameFromId(order.val())
+                .then((item) => {
+                  let isIn = false;
+                  const len = this.state.items.length;
+                  for (let i = 0; i < len; ++i) {
+                    if (this.state.items[i].id === item.id) {
+                      isIn = true;
+                      break;
+                    }
+                  }
+                  if (!isIn) {
+                    this.setState({ items: this.state.items.concat(item) }, () => {
+                      this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
+                      if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
+                    });
+                  }
+                });
+              });
+
+              this.orderChangedEvents = loadQuery.on('child_changed', (order) => {
+                this.setNameFromId(order.val())
+                .then((item) => {
+                  this.setState({
+                    items: this.state.items.map((o) => {
+                      if (item.val() === o.id) return item;
+                      return o;
+                    })
+                  }, () => {
+                    this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
+                    if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
+                  });
+                });
+              });
+
+              this.orderRemovedEvents = loadQuery.on('child_removed', (order) => {
+                this.setState({
+                  items: this.state.items.filter((o) => {
+                    if (order.child('id').val() === o.id) return false;
+                    return true;
+                  })
+                }, () => {
                   this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
                   if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
                 });
-              }
-            });
-
-            this.orderChangedEvents = loadQuery.on('child_changed', (order) => {
-              this.setState({
-                items: this.state.items.map((o) => {
-                  if (order.child('id').val() === o.id) return this.setNameFromId(order.val());
-                  return o;
-                })
-              }, () => {
-                this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
-                if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
               });
-            });
 
-            this.orderRemovedEvents = loadQuery.on('child_removed', (order) => {
-              this.setState({
-                items: this.state.items.filter((o) => {
-                  if (order.child('id').val() === o.id) return false;
-                  return true;
-                })
-              }, () => {
-                this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
-                if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
-              });
+              setTimeout(() => {
+                this.handleSorting(null, this.state.sortBy);
+              }, 100);
             });
-
-            setTimeout(() => {
-              this.handleSorting(null, this.state.sortBy);
-            }, 100);
           });
         });
       });
