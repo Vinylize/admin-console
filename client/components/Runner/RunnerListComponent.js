@@ -14,7 +14,7 @@ import {
   refs
 } from '../../util/firebase';
 
-const uploadBaseUrl = 'https://api.yetta.co/graphql?query=';
+const uploadBaseUrl = 'http://127.0.0.1:5002/graphql?query=';
 
 export default class RunnerList extends React.Component {
   constructor(props) {
@@ -84,12 +84,10 @@ export default class RunnerList extends React.Component {
                 if (this.state.sortOrder === 'asc') return this.ascSorting(a[sortBy], b[sortBy]);
                 return this.dscSorting(a[sortBy], b[sortBy]);
               }) : [],
-              isSelected: false
             }, () => {
               this.setState({ isSearching: true });
-              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-              this.handleSetTotalPage(len);
+              this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
+              this.handleSetTotalPage(this.state.searchedItems.length);
             });
           });
 
@@ -102,11 +100,9 @@ export default class RunnerList extends React.Component {
                 if (!item.isRA) return false;
                 return true;
               }),
-              isSelected: false
             }, () => {
-              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-              if (this.state.isSearching) this.handleSetTotalPage(len);
+              this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
+              this.handleSetTotalPage(this.state.searchedItems.length);
             });
           });
 
@@ -115,27 +111,23 @@ export default class RunnerList extends React.Component {
               searchedItems: this.state.searchedItems.filter((item) => {
                 if (item.id === data.val().id) return false;
                 return true;
-              }),
-              isSelected: false
+              })
             }, () => {
-              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-              if (this.state.isSearching) this.handleSetTotalPage(len);
+              this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
+              this.handleSetTotalPage(this.state.searchedItems.length);
             });
           });
         });
       });
     } else {
-      setTimeout(() => {
-        this.setState({ isSearching: false, sLoadedCurrent: 0 }, () => {
-          if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
-          if (this.state.searchedItems.length) {
-            refs.user.root.off('child_changed', this.userSearchedChangedEvents);
-            refs.user.root.off('child_removed', this.userSearchedRemovedEvents);
-          }
-          this.handleSetTotalPage(this.state.items.length);
-        });
-      }, 100);
+      this.setState({ isSearching: false, sLoadedCurrent: 0 }, () => {
+        this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
+        this.handleSetTotalPage(this.state.items.length);
+        if (this.state.searchedItems.length) {
+          refs.user.root.off('child_changed', this.userSearchedChangedEvents);
+          refs.user.root.off('child_removed', this.userSearchedRemovedEvents);
+        }
+      });
     }
   }
 
@@ -168,10 +160,6 @@ export default class RunnerList extends React.Component {
           return;
         }
         alert('The user is disapproved!');
-        setTimeout(() => {
-          const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-          if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-        }, 100);
       })
       .catch();
   }
@@ -197,10 +185,6 @@ export default class RunnerList extends React.Component {
         }
         if (isB) alert('The user is unblocked!');
         else alert('Ther user is blocked!');
-        setTimeout(() => {
-          const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-          if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-        }, 100);
       })
       .catch();
   }
@@ -287,6 +271,7 @@ export default class RunnerList extends React.Component {
               }
               if (!isIn && user.child('isRA').val() === true) {
                 this.setState({ items: this.state.items.concat(user.val()) }, () => {
+                  this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
                   if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
                 });
               }
@@ -303,9 +288,8 @@ export default class RunnerList extends React.Component {
                 }),
                 isSelected: false
               }, () => {
-                const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-                if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-                if (!this.state.isSearching) this.handleSetTotalPage(len);
+                this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
+                if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
               });
             });
 
@@ -317,9 +301,8 @@ export default class RunnerList extends React.Component {
                 }),
                 isSelected: false
               }, () => {
-                const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-                if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
-                if (!this.state.isSearching) this.handleSetTotalPage(len);
+                this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
+                if (!this.state.isSearching) this.handleSetTotalPage(this.state.items.length);
               });
             });
 
@@ -357,7 +340,7 @@ export default class RunnerList extends React.Component {
             <div style={{ display: 'flex', flexDirection: 'row', paddingRight: 30, paddingLeft: 16 }}>
               <div>
                 <RaisedButton
-                  label={this.state.isSelected && items.length > 0 ? (<Link to={`/runner/${items[this.state.selectedKey].id}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
+                  label={this.state.isSelected && items.length > 0 ? (<Link to={`/user/${items[this.state.selectedKey] ? items[this.state.selectedKey].id : ''}`} style={{ textDecoration: 'none', color: '#ffffff' }}>Detail</Link>) : 'Detail'}
                   primary
                   disabled={!this.state.isSelected}
                   style={{
@@ -367,21 +350,21 @@ export default class RunnerList extends React.Component {
                 <RaisedButton
                   label='Block'
                   secondary
-                  disabled={!this.state.isSelected || items[this.state.selectedKey].isB}
+                  disabled={!this.state.isSelected || (items[this.state.selectedKey] && items[this.state.selectedKey].isB)}
                   style={{
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(e) => { this.handleBlockUser(e, items[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleBlockUser(e, (items[this.state.selectedKey] && items[this.state.selectedKey].id), false); }}
                 />
                 <RaisedButton
                   label='Unblock'
                   primary
-                  disabled={!this.state.isSelected || !items[this.state.selectedKey].isB}
+                  disabled={!this.state.isSelected || (items[this.state.selectedKey] && !items[this.state.selectedKey].isB)}
                   style={{
                     margin: 12,
                   }}
-                  onClick={(e) => { this.handleBlockUser(e, items[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleBlockUser(e, (items[this.state.selectedKey] && items[this.state.selectedKey].id), true); }}
                 />
                 <RaisedButton
                   label='APPROVE'
@@ -392,7 +375,7 @@ export default class RunnerList extends React.Component {
                     margin: 12,
                     marginLeft: 50,
                   }}
-                  onClick={(e) => { this.handleApproveRunner(e, items[this.state.selectedKey].id, true); }}
+                  onClick={(e) => { this.handleApproveRunner(e, (items[this.state.selectedKey] && items[this.state.selectedKey].id), true); }}
                 />
                 <RaisedButton
                   label='DISAPPROVE'
@@ -401,7 +384,7 @@ export default class RunnerList extends React.Component {
                   style={{
                     margin: 12
                   }}
-                  onClick={(e) => { this.handleApproveRunner(e, items[this.state.selectedKey].id, false); }}
+                  onClick={(e) => { this.handleApproveRunner(e, (items[this.state.selectedKey] && items[this.state.selectedKey].id), false); }}
                 />
               </div>
               <div
@@ -422,6 +405,10 @@ export default class RunnerList extends React.Component {
                   floatingLabelText='SEARCH BY'
                   value={this.state.searchBy}
                   onChange={this.handleChangeSearchBy}
+                  style={{
+                    width: 180,
+                    marginLeft: 20
+                  }}
                 >
                   {this.state.searchOptions.map(option => (
                     <MenuItem key={option.value} value={option.value} primaryText={option.name} />

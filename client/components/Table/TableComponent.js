@@ -101,6 +101,12 @@ export default class DataTable extends React.Component {
                         return (<TableRowColumn key={this.props.headers[index2].value} colSpan={`${this.props.headers[index2].size}`}>{item[this.props.headers[index2].value] ? 'Blocked' : 'Unblocked'}</TableRowColumn>);
                       } else if (this.props.headers[index2].value === 'isPV') {
                         return (<TableRowColumn key={this.props.headers[index2].value} colSpan={`${this.props.headers[index2].size}`}>{item[this.props.headers[index2].value] ? 'Y' : 'N'}</TableRowColumn>);
+                      } else if (this.props.headers[index2].value === 'oName' || this.props.headers[index2].value === 'rName' || this.props.headers[index2].value === 'nName') {
+                        let linkUrl = '';
+                        if (this.props.headers[index2].value === 'oName') linkUrl = `/user/${item.oId}`;
+                        else if (this.props.headers[index2].value === 'rName') linkUrl = `/user/${item.rId}`;
+                        else if (this.props.headers[index2].value === 'nName') linkUrl = `/node/${item.nId}`;
+                        return (<TableRowColumn key={this.props.headers[index2].value} colSpan={`${this.props.headers[index2].size}`}><Link to={linkUrl} style={{ textDecoration: 'none', color: 'rgba(0, 0, 0, 0.87)' }}>{item[this.props.headers[index2].value]}</Link></TableRowColumn>);
                       } else if (this.props.headers[index2].value === 'idUrl' || this.props.headers[index2].value === 'imgUrl') {
                         return (
                           <TableRowColumn key={this.props.headers[index2].value} colSpan={`${this.props.headers[index2].size}`}>

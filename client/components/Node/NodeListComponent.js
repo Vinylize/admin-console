@@ -134,10 +134,9 @@ export default class NodeList extends React.Component {
                 if (this.state.sortOrder === 'asc') return this.ascSorting(a[sortBy], b[sortBy]);
                 return this.dscSorting(a[sortBy], b[sortBy]);
               }) : [],
-              isSelected: false
             }, () => {
               this.setState({ isSearching: true });
-              if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length)) this.setState({ isSelected: true });
+              this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
               this.handleSetTotalPage(this.state.searchedItems.length);
             });
           });
@@ -148,11 +147,9 @@ export default class NodeList extends React.Component {
                 if (item.id === data.val().id) return data.val();
                 return item;
               }),
-              isSelected: false
             }, () => {
-              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-              if (this.state.isSearching) this.handleSetTotalPage(len);
+              this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
+              this.handleSetTotalPage(this.state.searchedItems.length);
             });
           });
 
@@ -162,26 +159,22 @@ export default class NodeList extends React.Component {
                 if (item.id === data.val().id) return false;
                 return true;
               }),
-              isSelected: false
             }, () => {
-              const len = this.state.isSearching ? this.state.searchedItems.length : this.state.items.length;
-              if (this.state.selectedKey >= 0 && (this.state.selectedKey < len)) this.setState({ isSelected: true });
-              if (this.state.isSearching) this.handleSetTotalPage(len);
+              this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.searchedItems.length) });
+              this.handleSetTotalPage(this.state.searchedItems.length);
             });
           });
         });
       });
     } else {
-      setTimeout(() => {
-        this.setState({ isSearching: false, sLoadedCurrent: 0 }, () => {
-          if (this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length)) this.setState({ isSelected: true });
-          if (this.state.searchedItems.length) {
-            refs.node.root.off('child_changed', this.nodeSearchedChangedEvents);
-            refs.node.root.off('child_removed', this.nodeSearchedRemovedEvents);
-          }
-          this.handleSetTotalPage(this.state.items.length);
-        });
-      }, 100);
+      this.setState({ isSearching: false, sLoadedCurrent: 0 }, () => {
+        this.setState({ isSelected: this.state.selectedKey >= 0 && (this.state.selectedKey < this.state.items.length) });
+        this.handleSetTotalPage(this.state.items.length);
+        if (this.state.searchedItems.length) {
+          refs.order.root.off('child_changed', this.orderSearchedChangedEvents);
+          refs.order.root.off('child_removed', this.orderSearchedRemovedEvents);
+        }
+      });
     }
   }
 
@@ -359,7 +352,7 @@ export default class NodeList extends React.Component {
     }, () => {
       refs.node.root.orderByChild('createdAt').limitToFirst(this.state.loadedCurrent).once('value', (data) => {
         if (data.val()) {
-          this.setState({ nodes: Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) }, () => {
+          this.setState({ nodes: data.val() ? Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) : '' }, () => {
             this.setState({ items: this.state.nodes }, () => {
               this.handleSetTotalPage(this.state.items.length);
               this.handleSorting(null, this.state.sortBy);
@@ -446,6 +439,10 @@ export default class NodeList extends React.Component {
                   floatingLabelText='SEARCH BY'
                   value={this.state.searchBy}
                   onChange={this.handleChangeSearchBy}
+                  style={{
+                    width: 180,
+                    marginLeft: 20
+                  }}
                 >
                   {this.state.searchOptions.map(option => (
                     <MenuItem key={option.value} value={option.value} primaryText={option.name} />
