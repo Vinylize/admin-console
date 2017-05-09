@@ -31,7 +31,10 @@ export default class DataTable extends React.Component {
     handleRowSelection: React.PropTypes.func,
     sortOrder: React.PropTypes.string,
     sortBy: React.PropTypes.string,
-    onClickSort: React.PropTypes.func
+    onClickSort: React.PropTypes.func,
+    // isSearching: React.PropTypes.bool,
+    handleLoadNextData: React.PropTypes.func,
+    loadedAtOnce: React.PropTypes.number
   };
 
   constructor(props) {
@@ -142,6 +145,10 @@ export default class DataTable extends React.Component {
             current={this.props.pCurrent}
             onChange={pCurrent => this.props.handleSetPage(pCurrent)}
           />
+          <FlatButton
+            onClick={this.props.handleLoadNextData}
+            label={`SEARCH NEXT ${this.props.loadedAtOnce}`}
+          />
         </div>
         <Dialog
           title='Identification'
@@ -172,5 +179,7 @@ DataTable.defaultProps = {
   items: [],
   headers: [],
   searchBy: 'id',
-  searchWord: ''
+  searchWord: '',
+  isSearching: false,
+  loadedAtOnce: 0
 };
