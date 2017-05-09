@@ -118,11 +118,10 @@ class OrderList extends React.Component {
   })
 
   handleSearching = (word) => {
-    console.log('searching');
     if (word) {
       this.setState({ sLoadedCurrent: this.state.sLoadedCurrent + this.state.loadedAtOnce }, () => {
         this.setState({ searchWord: word }, () => {
-          const searchQuery = refs.order.root.orderByChild('cAt').limitToFirst(this.state.sLoadedCurrent);
+          const searchQuery = refs.order.root.orderByChild('cAt').limitToLast(this.state.sLoadedCurrent);
 
           searchQuery.once('value')
           .then((data) => {
@@ -210,16 +209,18 @@ class OrderList extends React.Component {
   handleSetPage = (pCurrent) => {
     this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
     if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
-    if (pCurrent === this.state.pTotal) {
-      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
-      else this.handleLoadData();
-    }
+    if (pCurrent === this.state.pTotal) this.handleLoadNextData();
   }
 
   handleSetTotalPage = (itemLength) => {
     const pTotal = Math.ceil(itemLength / this.state.pDisplay) === 0 ? 1 : Math.ceil(itemLength / this.state.pDisplay);
     if (pTotal < this.state.pCurrent) this.handleSetPage(1);
     if (pTotal !== this.state.pTotal) this.setState({ pTotal });
+  }
+
+  handleLoadNextData = () => {
+    if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+    else this.handleLoadData();
   }
 
   handleSorting = (e, prop) => {
@@ -255,7 +256,7 @@ class OrderList extends React.Component {
     this.setState({
       loadedCurrent: this.state.loadedCurrent + this.state.loadedAtOnce
     }, () => {
-      const loadQuery = refs.order.root.orderByChild('cAt').limitToFirst(this.state.loadedCurrent);
+      const loadQuery = refs.order.root.orderByChild('cAt').limitToLast(this.state.loadedCurrent);
       loadQuery.once('value')
       .then((data) => {
         this.setNameFromIds(Object.keys(data.val()).map(key => data.val()[key]))
@@ -418,6 +419,9 @@ class OrderList extends React.Component {
               sortOrder={this.state.sortOrder}
               sortBy={this.state.sortBy}
               onClickSort={this.handleSorting}
+              isSearching={this.state.isSearching}
+              handleLoadNextData={this.handleLoadNextData}
+              loadedAtOnce={this.state.loadedAtOnce}
             />
           </Paper>
         </div>
