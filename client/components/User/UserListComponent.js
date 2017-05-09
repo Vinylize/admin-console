@@ -83,7 +83,7 @@ class UserList extends React.Component {
     if (word) {
       this.setState({ sLoadedCurrent: this.state.sLoadedCurrent + this.state.loadedAtOnce }, () => {
         this.setState({ searchWord: word }, () => {
-          const searchQuery = refs.user.root.orderByChild('permission').equalTo(null).limitToFirst(this.state.sLoadedCurrent);
+          const searchQuery = refs.user.root.orderByChild('permission').equalTo(null).limitToLast(this.state.sLoadedCurrent);
 
           searchQuery.once('value')
           .then((data) => {
@@ -193,16 +193,18 @@ class UserList extends React.Component {
   handleSetPage = (pCurrent) => {
     this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
     if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
-    if (pCurrent === this.state.pTotal) {
-      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
-      else this.handleLoadData();
-    }
+    if (pCurrent === this.state.pTotal) this.handleLoadNextData();
   }
 
   handleSetTotalPage = (itemLength) => {
     const pTotal = Math.ceil(itemLength / this.state.pDisplay);
     if (pTotal < this.state.pCurrent) this.handleSetPage(1);
     if (pTotal !== this.state.pTotal) this.setState({ pTotal });
+  }
+
+  handleLoadNextData = () => {
+    if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+    else this.handleLoadData();
   }
 
   handleSorting = (e, prop) => {
@@ -238,7 +240,7 @@ class UserList extends React.Component {
     this.setState({
       loadedCurrent: this.state.loadedCurrent + this.state.loadedAtOnce
     }, () => {
-      const userLoadQuery = refs.user.root.orderByChild('permission').equalTo(null).limitToFirst(this.state.loadedCurrent);
+      const userLoadQuery = refs.user.root.orderByChild('permission').equalTo(null).limitToLast(this.state.loadedCurrent);
       userLoadQuery.once('value')
       .then((data) => {
         this.setState({
@@ -433,6 +435,9 @@ class UserList extends React.Component {
               sortOrder={this.state.sortOrder}
               sortBy={this.state.sortBy}
               onClickSort={this.handleSorting}
+              isSearching={this.state.isSearching}
+              handleLoadNextData={this.handleLoadNextData}
+              loadedAtOnce={this.state.loadedAtOnce}
             />
           </Paper>
           <Dialog
