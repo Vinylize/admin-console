@@ -120,7 +120,7 @@ export default class NodeList extends React.Component {
     if (word) {
       this.setState({ sLoadedCurrent: this.state.sLoadedCurrent + this.state.loadedAtOnce }, () => {
         this.setState({ searchWord: word }, () => {
-          const searchQuery = refs.node.root.orderByKey().limitToFirst(this.state.sLoadedCurrent);
+          const searchQuery = refs.node.root.orderByKey();
 
           searchQuery.once('value')
           .then((data) => {
@@ -304,16 +304,18 @@ export default class NodeList extends React.Component {
   handleSetPage = (pCurrent) => {
     this.setState({ selectedKey: (this.state.selectedKey % this.state.pDisplay) + ((pCurrent - 1) * this.state.pDisplay) });
     if (pCurrent !== this.state.pCurrent) this.setState({ pCurrent });
-    if (pCurrent === this.state.pTotal) {
-      if (this.state.isSearching) this.handleSearching(this.state.searchWord);
-      else this.handleLoadData();
-    }
+    if (pCurrent === this.state.pTotal) this.handleLoadNextData();
   }
 
   handleSetTotalPage = (itemLength) => {
     const pTotal = Math.ceil(itemLength / this.state.pDisplay) === 0 ? 1 : Math.ceil(itemLength / this.state.pDisplay);
     if (pTotal < this.state.pCurrent) this.handleSetPage(1);
     if (pTotal !== this.state.pTotal) this.setState({ pTotal });
+  }
+
+  handleLoadNextData = () => {
+    if (this.state.isSearching) this.handleSearching(this.state.searchWord);
+    else this.handleLoadData();
   }
 
   handleSorting = (e, prop) => {
@@ -350,7 +352,7 @@ export default class NodeList extends React.Component {
     this.setState({
       loadedCurrent: this.state.loadedCurrent + this.state.loadedAtOnce
     }, () => {
-      refs.node.root.orderByChild('createdAt').limitToFirst(this.state.loadedCurrent).once('value', (data) => {
+      refs.node.root.orderByChild('createdAt').limitToLast(this.state.loadedCurrent).once('value', (data) => {
         if (data.val()) {
           this.setState({ nodes: data.val() ? Object.keys(data.val()).map(nodeKey => data.val()[nodeKey]) : '' }, () => {
             this.setState({ items: this.state.nodes }, () => {
@@ -513,6 +515,9 @@ export default class NodeList extends React.Component {
               sortOrder={this.state.sortOrder}
               sortBy={this.state.sortBy}
               onClickSort={this.handleSorting}
+              isSearching={this.state.isSearching}
+              handleLoadNextData={this.handleLoadNextData}
+              loadedAtOnce={this.state.loadedAtOnce}
             />
           </Paper>
           <Dialog
