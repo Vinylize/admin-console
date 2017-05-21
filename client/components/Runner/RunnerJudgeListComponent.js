@@ -374,7 +374,7 @@ export default class RunnerJudgeList extends React.Component {
                 />
                 <RaisedButton
                   label='APPROVE'
-                  disabled
+                  disabled={!this.state.isSelected}
                   backgroundColor='#a4c639'
                   labelColor='#FFFFFF'
                   style={{
