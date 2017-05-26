@@ -6,7 +6,7 @@ import WebpackDevServer from 'webpack-dev-server';
 import historyApiFallback from 'connect-history-api-fallback';
 import chalk from 'chalk';
 import webpackConfig from '../webpack.config';
-import config from '../config/environment';
+import config from './config/environment';
 
 if (config.env === 'development') {
   const app = new WebpackDevServer(webpack(webpackConfig), {
@@ -22,9 +22,11 @@ if (config.env === 'development') {
   app.use('/', express.static(path.join(__dirname, '../build')));
   app.listen(config.port, () => console.log(chalk.green(`listening on port ${config.port}`)));
 } else if (config.env === 'production') {
+  console.log('priduction');
   // Launch Relay by creating a normal express server
   const app = express();
   app.use(historyApiFallback());
+  console.log(path.join(__dirname, '../build'));
   app.use('/', express.static(path.join(__dirname, '../build')));
   app.listen(config.port, () => console.log(chalk.green(`listening on port ${config.port}`)));
 }
