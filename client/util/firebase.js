@@ -3,7 +3,7 @@
  */
 
 import firebase from 'firebase';
-import config from '../../config/environment';
+import config from '../../server/config/environment';
 
 firebase.initializeApp(config.firebase);
 const db = firebase.database();

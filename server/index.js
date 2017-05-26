@@ -6,7 +6,7 @@ import WebpackDevServer from 'webpack-dev-server';
 import historyApiFallback from 'connect-history-api-fallback';
 import chalk from 'chalk';
 import webpackConfig from '../webpack.config';
-import config from '../config/environment';
+import config from './config/environment';
 
 if (config.env === 'development') {
   const app = new WebpackDevServer(webpack(webpackConfig), {

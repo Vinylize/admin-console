@@ -8,7 +8,7 @@ import {
   refs,
 } from '../../util/firebase';
 
-import config from '../../../config/environment';
+import config from '../../../server/config/environment';
 
 export default class MapContent extends React.Component {
   static propTypes = {
