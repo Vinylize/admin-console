@@ -29,7 +29,7 @@ export default class Navbar extends React.Component {
   updateLoginState() {
     const user = checkAuth();
     if (user) {
-      this.state.adminEmail = user.email;
+      this.state.adminEmail = user.e;
       this.setState({ loginState: 'Logout' });
     } else {
       this.state.adminEmail = '';

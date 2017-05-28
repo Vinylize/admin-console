@@ -37,6 +37,7 @@ class Login extends React.Component {
 
   handleAuthSuccess() {
     const nextLocation = this.props.location.state;
+    console.log('success!', nextLocation);
     if (!nextLocation || nextLocation === '/login') this.props.router.replace('/');
     else this.props.router.replace(nextLocation);
   }

@@ -15,9 +15,10 @@ import SelectField from 'material-ui/SelectField';
 import DataTable from '../Table/TableComponent';
 
 import {
-  refs,
-  firebase
+  refs
 } from '../../util/firebase';
+
+import store from '../../util/redux/redux.store';
 
 const uploadBaseUrl = 'https://api.yetta.co/graphql?query=';
 
@@ -155,14 +156,14 @@ class UserList extends React.Component {
   handleBlockUser = (e, uid, isB) => {
     e.preventDefault();
     const url = isB ? `${uploadBaseUrl}mutation{adminUnblockUser(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminBlockUser(input:{uid:"${uid}"}){result}}`;
-    return firebase.auth().getToken()
-      .then(token => fetch(url,
-        {
-          method: 'POST',
-          headers: {
-            authorization: token.accessToken
-          }
-        }))
+    const token = store.getState().auth.token;
+    return fetch(url,
+      {
+        method: 'POST',
+        headers: {
+          authorization: token
+        }
+      })
       .then(response => response.json())
       .then((response) => {
         if (response.errors) {
