@@ -13,4 +13,4 @@ COPY . /app
 
 EXPOSE 3000
 
-CMD [ "npm", "run", "deploy" ]
+CMD [ "npm", "start" ]
