@@ -25,6 +25,8 @@ if (config.env === 'development') {
   // Launch Relay by creating a normal express server
   const app = express();
   app.use(historyApiFallback());
-  app.use('/', express.static(path.join(__dirname, '../build')));
+  app.use(express.static(path.join(__dirname, '../build')));
+
+  // app.get("*", (req, res) => res.sendFile(HTML_FILE));
   app.listen(config.port, () => console.log(chalk.green(`listening on port ${config.port}`)));
 }
