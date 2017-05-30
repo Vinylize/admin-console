@@ -43,6 +43,6 @@ build/
 # Credintial Files
 # --------------------
 firebaseDev.json
-config/environment/development.js
-config/environment/production.js
+server/config/environment/development.js
+server/config/environment/production.js
 
