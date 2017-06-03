@@ -13,7 +13,8 @@ const checkAuth = () => {
     fetch(url, {
       method: 'POST',
       headers: {
-        authorization: token
+        authorization: token,
+        permission: 'admin'
       }
     })
     .then(response => response.json())
@@ -71,6 +72,7 @@ const getAuth = (email, password) => new Promise((resolve, reject) => {
     /* eslint-disable no-underscore-dangle */
     client._transport._httpOptions.headers = {
       authorization: token,
+      permission: 'admin'
     };
     /* eslint-enable no-underscore-dangle */
     resolve();

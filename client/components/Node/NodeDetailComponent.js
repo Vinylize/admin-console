@@ -82,7 +82,8 @@ export default class NodeDetail extends React.Component {
         method: 'POST',
         body: data,
         headers: {
-          authorization: token
+          authorization: token,
+          permission: 'admin'
         }
       })
       .then(response => response.json())

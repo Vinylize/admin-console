@@ -149,7 +149,8 @@ export default class RunnerList extends React.Component {
       {
         method: 'POST',
         headers: {
-          authorization: token
+          authorization: token,
+          permission: 'admin'
         }
       })
       .then(response => response.json())
@@ -173,7 +174,8 @@ export default class RunnerList extends React.Component {
       {
         method: 'POST',
         headers: {
-          authorization: token
+          authorization: token,
+          permission: 'admin'
         }
       })
       .then(response => response.json())
