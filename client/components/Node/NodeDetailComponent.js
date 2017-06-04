@@ -29,6 +29,8 @@ import {
 
 import store from '../../util/redux/redux.store';
 
+import { saveAuth } from '../../util/redux/actions/auth.actions';
+
 const uploadBaseUrl = 'https://api.yetta.co/graphql/upload?query=';
 
 export default class NodeDetail extends React.Component {
@@ -92,7 +94,9 @@ export default class NodeDetail extends React.Component {
           console.log(response.errors);
           return;
         }
-
+        const newUser = response.extensions.auth.user;
+        const newToken = response.extensions.auth.token;
+        store.dispatch(saveAuth({ user: newUser, token: newToken }));
         console.log(response.data);
       })
       .catch(console.log);

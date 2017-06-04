@@ -15,6 +15,8 @@ import {
 
 import store from '../../util/redux/redux.store';
 
+import { saveAuth } from '../../util/redux/actions/auth.actions';
+
 const uploadBaseUrl = 'https://api.yetta.co/graphql?query=';
 
 export default class RunnerList extends React.Component {
@@ -160,6 +162,9 @@ export default class RunnerList extends React.Component {
           alert(response.errors[0].message);
           return;
         }
+        const newUser = response.extensions.auth.user;
+        const newToken = response.extensions.auth.token;
+        store.dispatch(saveAuth({ user: newUser, token: newToken }));
         alert('The user is disapproved!');
       })
       .catch();
@@ -185,6 +190,9 @@ export default class RunnerList extends React.Component {
           alert(response.errors[0].message);
           return;
         }
+        const newUser = response.extensions.auth.user;
+        const newToken = response.extensions.auth.token;
+        store.dispatch(saveAuth({ user: newUser, token: newToken }));
         if (isB) alert('The user is unblocked!');
         else alert('Ther user is blocked!');
       })

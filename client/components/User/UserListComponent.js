@@ -20,6 +20,8 @@ import {
 
 import store from '../../util/redux/redux.store';
 
+import { saveAuth } from '../../util/redux/actions/auth.actions';
+
 const uploadBaseUrl = 'https://api.yetta.co/graphql?query=';
 
 class UserList extends React.Component {
@@ -172,6 +174,9 @@ class UserList extends React.Component {
           alert(response.errors[0].message);
           return;
         }
+        const newUser = response.extensions.auth.user;
+        const newToken = response.extensions.auth.token;
+        store.dispatch(saveAuth({ user: newUser, token: newToken }));
         if (isB) alert('The user is unblocked!');
         else alert('Ther user is blocked!');
       })
