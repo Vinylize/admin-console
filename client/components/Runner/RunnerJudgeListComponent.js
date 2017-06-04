@@ -167,8 +167,8 @@ export default class RunnerJudgeList extends React.Component {
           alert(response.errors[0].message);
           return;
         }
-        const newUser = response.extensions.auth.user;
-        const newToken = response.extensions.auth.token;
+        const newUser = response.data.auth.user;
+        const newToken = response.data.auth.token;
         store.dispatch(saveAuth({ user: newUser, token: newToken }));
         if (isA) alert('The user is approved!');
         else alert('The user is disapproved!');
@@ -196,8 +196,8 @@ export default class RunnerJudgeList extends React.Component {
           alert(response.errors[0].message);
           return;
         }
-        const newUser = response.extensions.auth.user;
-        const newToken = response.extensions.auth.token;
+        const newUser = response.data.auth.user;
+        const newToken = response.data.auth.token;
         store.dispatch(saveAuth({ user: newUser, token: newToken }));
         if (isB) alert('The user is unblocked!');
         else alert('Ther user is blocked!');

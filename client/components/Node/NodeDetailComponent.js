@@ -94,8 +94,8 @@ export default class NodeDetail extends React.Component {
           console.log(response.errors);
           return;
         }
-        const newUser = response.extensions.auth.user;
-        const newToken = response.extensions.auth.token;
+        const newUser = response.data.auth.user;
+        const newToken = response.data.auth.token;
         store.dispatch(saveAuth({ user: newUser, token: newToken }));
         console.log(response.data);
       })
