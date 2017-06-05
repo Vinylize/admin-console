@@ -24,9 +24,12 @@ import Paper from 'material-ui/Paper';
 // } from 'material-ui/Table';
 
 import {
-  firebase,
   refs,
 } from '../../util/firebase';
+
+import store from '../../util/redux/redux.store';
+
+import { saveAuth } from '../../util/redux/actions/auth.actions';
 
 const uploadBaseUrl = 'https://api.yetta.co/graphql/upload?query=';
 
@@ -75,23 +78,25 @@ export default class NodeDetail extends React.Component {
     const data = new FormData();
     data.append('file', this.state.file);
     const url = `${uploadBaseUrl}mutation{uploadNodeImage(input:{nodeId:"${this.props.params.id}"}){imgUrl clientMutationId}}`;
-    console.log(url);
-    return firebase.auth().getToken()
-      .then(token => fetch(url,
-        {
-          method: 'POST',
-          body: data,
-          headers: {
-            authorization: token.accessToken
-          }
-        }))
+    const token = store.getState().auth.token;
+    return fetch(url,
+      {
+        method: 'POST',
+        body: data,
+        headers: {
+          authorization: token,
+          permission: 'admin'
+        }
+      })
       .then(response => response.json())
       .then((response) => {
         if (response.errors) {
           console.log(response.errors);
           return;
         }
-
+        const newUser = response.data.auth.user;
+        const newToken = response.data.auth.token;
+        store.dispatch(saveAuth({ user: newUser, token: newToken }));
         console.log(response.data);
       })
       .catch(console.log);

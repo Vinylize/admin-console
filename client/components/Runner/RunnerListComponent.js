@@ -10,11 +10,14 @@ import SelectField from 'material-ui/SelectField';
 import DataTable from '../Table/TableComponent';
 
 import {
-  firebase,
   refs
 } from '../../util/firebase';
 
-const uploadBaseUrl = 'http://127.0.0.1:5002/graphql?query=';
+import store from '../../util/redux/redux.store';
+
+import { saveAuth } from '../../util/redux/actions/auth.actions';
+
+const uploadBaseUrl = 'https://api.yetta.co/graphql?query=';
 
 export default class RunnerList extends React.Component {
   constructor(props) {
@@ -143,15 +146,15 @@ export default class RunnerList extends React.Component {
     e.preventDefault();
     this.setState({ isSelected: false });
     const url = `${uploadBaseUrl}mutation{adminDisapproveRunner(input:{uid:"${uid}"}){result}}`;
-    console.log(url);
-    return firebase.auth().getToken()
-      .then(token => fetch(url,
-        {
-          method: 'POST',
-          headers: {
-            authorization: token.accessToken
-          }
-        }))
+    const token = store.getState().auth.token;
+    return fetch(url,
+      {
+        method: 'POST',
+        headers: {
+          authorization: token,
+          permission: 'admin'
+        }
+      })
       .then(response => response.json())
       .then((response) => {
         if (response.errors) {
@@ -159,6 +162,9 @@ export default class RunnerList extends React.Component {
           alert(response.errors[0].message);
           return;
         }
+        const newUser = response.data.auth.user;
+        const newToken = response.data.auth.token;
+        store.dispatch(saveAuth({ user: newUser, token: newToken }));
         alert('The user is disapproved!');
       })
       .catch();
@@ -168,14 +174,15 @@ export default class RunnerList extends React.Component {
     e.preventDefault();
     this.setState({ isSelected: false });
     const url = isB ? `${uploadBaseUrl}mutation{adminUnblockUser(input:{uid:"${uid}"}){result}}` : `${uploadBaseUrl}mutation{adminBlockUser(input:{uid:"${uid}"}){result}}`;
-    return firebase.auth().getToken()
-      .then(token => fetch(url,
-        {
-          method: 'POST',
-          headers: {
-            authorization: token.accessToken
-          }
-        }))
+    const token = store.getState().auth.token;
+    return fetch(url,
+      {
+        method: 'POST',
+        headers: {
+          authorization: token,
+          permission: 'admin'
+        }
+      })
       .then(response => response.json())
       .then((response) => {
         if (response.errors) {
@@ -183,6 +190,9 @@ export default class RunnerList extends React.Component {
           alert(response.errors[0].message);
           return;
         }
+        const newUser = response.data.auth.user;
+        const newToken = response.data.auth.token;
+        store.dispatch(saveAuth({ user: newUser, token: newToken }));
         if (isB) alert('The user is unblocked!');
         else alert('Ther user is blocked!');
       })

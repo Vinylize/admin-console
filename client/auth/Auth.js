@@ -1,8 +1,44 @@
-import firebase from 'firebase';
-import client from '../util/lokka';
-import { refs } from '../util/firebase';
+import { client } from '../util/lokka';
+import store from '../util/redux/redux.store';
+import { saveAuth, destroyAuth } from '../util/redux/actions/auth.actions';
 
-const checkAuth = () => firebase.auth().currentUser;
+const uploadBaseUrl = 'https://api.yetta.co/graphql?query=';
+
+const checkAuth = () => {
+  const currentUser = store.getState().auth.currentUser;
+  // refresh auth
+  if (currentUser && currentUser.exp > (Math.floor(Date.now() / 1000))) {
+    const token = store.getState().auth.token;
+    const url = `${uploadBaseUrl}mutation{adminRefreshAuth(input:{token:"${token}"}){user{e,n,permission,exp} token}}`;
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        authorization: token,
+        permission: 'admin'
+      }
+    })
+    .then(response => response.json())
+    .then((response) => {
+      if (response.errors) {
+        if (response.errors[0].message === 'jwt expired') {
+          store.dispatch(destroyAuth());
+        }
+        return false;
+      }
+      const newUser = response.data.adminRefreshAuth.user;
+      const newToken = response.data.adminRefreshAuth.token;
+      store.dispatch(saveAuth({ user: newUser, token: newToken }));
+      /* eslint-disable no-underscore-dangle */
+      client._transport._httpOptions.headers = {
+        authorization: newToken,
+      };
+      /* eslint-enable no-underscore-dangle */
+      return true;
+    });
+    return currentUser;
+  }
+  return false;
+};
 
 const checkAuthRoute = (nextState, transition) => {
   if (!checkAuth()) {
@@ -20,44 +56,59 @@ const checkAuthRoute = (nextState, transition) => {
 };
 
 const getAuth = (email, password) => new Promise((resolve, reject) => {
-  firebase.auth().signInWithEmailAndPassword(email, password)
-  .then((user) => {
-    const uid = user.uid;
-    return refs.user.root.child(uid).once('value')
-      .then((snap) => {
-        if (snap.child('permission').val() === 'admin') return resolve();
-        return firebase.auth().signOut().then(() => reject('You are not authorized'));
-      });
+  const url = `${uploadBaseUrl}mutation{adminSignIn(input:{e:"${email}",pw:"${password}"}){user{e,n,permission,exp} token}}`;
+  return fetch(url, {
+    method: 'POST',
   })
-  .then(() =>
-    firebase.auth().getToken()
-      .then((token) => {
-        /* eslint-disable no-underscore-dangle */
-        client._transport._httpOptions.headers = {
-          authorization: token.accessToken,
-        };
-        /* eslint-enable no-underscore-dangle */
-        return resolve();
-      })
-  )
-  .catch((error) => {
-    reject(error);
-  });
+  .then(response => response.json())
+  .then((response) => {
+    if (response.errors) {
+      alert(response.errors[0].message);
+      return;
+    }
+    const user = response.data.adminSignIn.user;
+    const token = response.data.adminSignIn.token;
+    store.dispatch(saveAuth({ user, token }));
+    /* eslint-disable no-underscore-dangle */
+    client._transport._httpOptions.headers = {
+      authorization: token,
+      permission: 'admin'
+    };
+    /* eslint-enable no-underscore-dangle */
+    resolve();
+  })
+  .catch(error => reject(error));
 });
-
 
 const deleteAuth = (nextState, transition) => {
   if (!checkAuth()) {
     alert('Login first!');
     transition('/');
   } else {
-    const email = firebase.auth().currentUser.email;
-    firebase.auth().signOut().then(() => {
-      alert(`${email} is logged out!`);
-    }, (error) => {
-      alert(error);
-    });
+    const token = store.getState().auth.token;
+    const url = `${uploadBaseUrl}mutation{adminSignOut(input:{token:"${token}"}){result}}`;
+    store.dispatch(destroyAuth());
     transition('/login');
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        authorization: token
+      }
+    })
+    .then(response => response.json())
+    .then((response) => {
+      if (response.errors) {
+        if (response.errors[0].message === 'jwt expired') {
+          store.dispatch(destroyAuth());
+          return;
+        }
+        alert(response.errors[0].message);
+      }
+    })
+    .catch((error) => {
+      transition('/');
+      return alert(error);
+    });
   }
 };
 
