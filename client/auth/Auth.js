@@ -1,3 +1,4 @@
+import firebase from 'firebase';
 import { client } from '../util/lokka';
 import store from '../util/redux/redux.store';
 import { saveAuth, destroyAuth } from '../util/redux/actions/auth.actions';
@@ -56,28 +57,32 @@ const checkAuthRoute = (nextState, transition) => {
 };
 
 const getAuth = (email, password) => new Promise((resolve, reject) => {
-  const url = `${uploadBaseUrl}mutation{adminSignIn(input:{e:"${email}",pw:"${password}"}){user{e,n,permission,exp} token}}`;
-  return fetch(url, {
-    method: 'POST',
-  })
-  .then(response => response.json())
-  .then((response) => {
-    if (response.errors) {
-      alert(response.errors[0].message);
-      return;
-    }
-    const user = response.data.adminSignIn.user;
-    const token = response.data.adminSignIn.token;
-    store.dispatch(saveAuth({ user, token }));
-    /* eslint-disable no-underscore-dangle */
-    client._transport._httpOptions.headers = {
-      authorization: token,
-      permission: 'admin'
-    };
-    /* eslint-enable no-underscore-dangle */
-    resolve();
-  })
-  .catch(error => reject(error));
+  firebase.auth().signInWithEmailAndPassword(email, password)
+  .then((err) => {
+    if (err) console.lor(err);
+    const url = `${uploadBaseUrl}mutation{adminSignIn(input:{e:"${email}",pw:"${password}"}){user{e,n,permission,exp} token}}`;
+    return fetch(url, {
+      method: 'POST',
+    })
+    .then(response => response.json())
+    .then((response) => {
+      if (response.errors) {
+        alert(response.errors[0].message);
+        return;
+      }
+      const user = response.data.adminSignIn.user;
+      const token = response.data.adminSignIn.token;
+      store.dispatch(saveAuth({ user, token }));
+      /* eslint-disable no-underscore-dangle */
+      client._transport._httpOptions.headers = {
+        authorization: token,
+        permission: 'admin'
+      };
+      /* eslint-enable no-underscore-dangle */
+      resolve();
+    })
+    .catch(error => reject(error));
+  });
 });
 
 const deleteAuth = (nextState, transition) => {
@@ -85,29 +90,32 @@ const deleteAuth = (nextState, transition) => {
     alert('Login first!');
     transition('/');
   } else {
-    const token = store.getState().auth.token;
-    const url = `${uploadBaseUrl}mutation{adminSignOut(input:{token:"${token}"}){result}}`;
-    store.dispatch(destroyAuth());
-    transition('/login');
-    fetch(url, {
-      method: 'POST',
-      headers: {
-        authorization: token
-      }
-    })
-    .then(response => response.json())
-    .then((response) => {
-      if (response.errors) {
-        if (response.errors[0].message === 'jwt expired') {
-          store.dispatch(destroyAuth());
-          return;
+    firebase.auth().signOut()
+    .then(() => {
+      const token = store.getState().auth.token;
+      const url = `${uploadBaseUrl}mutation{adminSignOut(input:{token:"${token}"}){result}}`;
+      store.dispatch(destroyAuth());
+      transition('/login');
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          authorization: token
         }
-        alert(response.errors[0].message);
-      }
-    })
-    .catch((error) => {
-      transition('/');
-      return alert(error);
+      })
+      .then(response => response.json())
+      .then((response) => {
+        if (response.errors) {
+          if (response.errors[0].message === 'jwt expired') {
+            store.dispatch(destroyAuth());
+            return;
+          }
+          alert(response.errors[0].message);
+        }
+      })
+      .catch((error) => {
+        transition('/');
+        return alert(error);
+      });
     });
   }
 };
