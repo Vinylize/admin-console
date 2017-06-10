@@ -59,7 +59,7 @@ const checkAuthRoute = (nextState, transition) => {
 const getAuth = (email, password) => new Promise((resolve, reject) => {
   firebase.auth().signInWithEmailAndPassword(email, password)
   .then((err) => {
-    if (err) console.lor(err);
+    if (err) console.log(err);
     const url = `${uploadBaseUrl}mutation{adminSignIn(input:{e:"${email}",pw:"${password}"}){user{e,n,permission,exp} token}}`;
     return fetch(url, {
       method: 'POST',
